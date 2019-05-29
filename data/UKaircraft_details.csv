@@ -1,0 +1,66 @@
+Model,Freq,Seats,fuel_short,fuel_medium,fuel_long,source
+,,,<1500,1500-4000,>4000,
+Boeing 737-800,835,162,2.44,2.77,,Wiki
+Airbus A320,656,150,3.13,2.91,,Wiki
+Airbus A319,628,136,2.4,3.37,,Wiki
+Airbus A321,235,180,,3.3,2.9,Wiki
+Boeing 777,195,301,,6.96,7.42,Wiki
+Boeing 777-300ER,72,365,,,8.49,Wiki
+Boeing 777-300,12,368,,,7.88,Wiki
+Boeing 777-200,9,305,,6.83,,Wiki
+Boeing 777-200LR,5,291,,,7.57,Wiki
+De Havilland Canada DHC-8-400 Dash 8Q,167,68,0.82,,,https://en.wikipedia.org/wiki/Bombardier_Dash_8#Series_400
+Boeing 737,19,100,,,,
+Boeing 737-300,157,126,3.49,,,Wiki
+Boeing 737-400,37,168,,,,
+Boeing 737-500,6,132,,,,
+Boeing 737-600,12,110,2.77,3.16,,Wiki
+Boeing 737-700,5,126,2.82,3.21,,Wiki
+Boeing 737-900,4,180,3.42,3.83,,Wiki
+Boeing 747-400,155,416,,10.77,11.11,Wiki
+Boeing 747,2,467,,9.9,10.54,Wiki
+Boeing 757-200,125,200,4.6,4.68,,Wiki
+Boeing 757,33,200,4.6,4.68,,Wiki
+Boeing 757-300,10,243,5.68,5.91,,Wiki
+Boeing 767-300,61,218,,5.38,5.39,Wiki
+Boeing 767,58,193,,,5.01,Wiki
+Boeing 767-400,21,304,,,5.93,Wiki
+Airbus A330-300,48,262,,,6.25,Wiki
+Airbus A330-200,33,241,5.6,6,6.4,Wiki
+Airbus A330,39,300,,,5.94,Wiki
+Embraer 170,21,72,,,,
+Embraer 175,46,78,,,,
+Embraer 190,48,100,,,,
+Embraer 195,28,110,,,,
+Embraer Legacy 600,8,37,,,,
+Embraer RJ145,34,50,,,,
+Airbus A380-800,10,525,,,13.78,Wiki
+Airbus A380,6,525,,,13.78,Wiki
+Airbus A340-600,26,379,,,,
+Airbus A340-300,6,262,,6.81,7.32,Wiki
+Airbus A318,6,132,,,,
+Airbus A310,7,220,,,,
+Airbus A300-600,4,266,,,,
+Boeing 787-8,34,243,,,5.38,Wiki
+Boeing 787,9,243,,,5.38,Wiki
+Boeing 717,4,134,,,,
+Aerospatiale/Alenia ATR 72,40,78,,,,
+Saab SF340A/B,33,30,,,,
+Saab 2000,10,58,,,,
+Pilatus Britten-Norman BN-2A/B Islander,20,11,,,,
+Pilatus Britten-Norman BN-2A Mk III Trislander,2,18,,,,
+Fokker 70,21,79,,,,
+Fokker 50,38,46,,,,
+Fokker 100,8,100,,,,
+Fairchild Dornier Do.328,17,30,,,,
+Fairchild Dornier 328JET,4,30,,,,
+De Havilland Canada DHC-6 Twin Otter,12,19,,,,
+Canadair Regional Jet 900,12,80,,,,
+Canadair Regional Jet 200,2,50,,,,
+British Aerospace Jetstream 41,16,30,,,,
+British Aerospace Jetstream 32,4,19,,,,
+British Aerospace Jetstream 31,4,18,,,,
+Avro RJ85,35,112,,,,
+Avro RJ100,7,122,,,,
+Aerospatiale/Alenia ATR 42-500,2,48,,,,
+Aerospatiale/Alenia ATR 42-300,12,48,,,,

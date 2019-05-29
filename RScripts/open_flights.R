@@ -2,23 +2,23 @@
 library(dplyr)
 
 routes <- read.delim("data/OpenFlights/routes.dat", header = FALSE, 
-                     sep = ",", stringsAsFactors = FALSE)
+                     sep = ",", stringsAsFactors = FALSE, encoding = "UTF-8")
 names(routes) <- c("Airline","AirlineID","Origin","OriginID","Dest","DestID",
                    "Codeshare","Stops","Equipment")
 
 airlines <- read.delim("data/OpenFlights/airlines.dat", header = FALSE, 
-                       sep = ",", stringsAsFactors = FALSE)
+                       sep = ",", stringsAsFactors = FALSE, encoding = "UTF-8")
 names(airlines) <- c("AirlineID","Name","Alias","IATA","ICAO","Callsign",
                    "Country","Active")
 
 airports <- read.delim("data/OpenFlights/airports.dat", header = FALSE, 
-                       sep = ",", stringsAsFactors = FALSE)
+                       sep = ",", stringsAsFactors = FALSE, encoding = "UTF-8")
 names(airports) <- c("AirportID","Name","City","Country","IATA","ICAO","Latitude",
                      "Longitude","Altitude","Timezone","DST","TzDB","Type","Source")
 
 
 planes <- read.delim("data/OpenFlights/planes.dat", header = FALSE,
-                     sep = ",", stringsAsFactors = FALSE)
+                     sep = ",", stringsAsFactors = FALSE, encoding = "UTF-8")
 names(planes) <- c("Name","IATA","ICAO")
 
 # Fix missing ID
@@ -59,3 +59,11 @@ planes <- rbind(planes, planes_missing)
 
 
 routes_uk <-  left_join(routes_uk, planes, by = c("Equipment" = "IATA"))
+
+saveRDS(routes_uk,"data/OpenFlights/UKflights.Rds")
+
+fuel <- readRDS("data/Fuel Consumption - Wikipedia.Rds")
+fuel <- fuel[!duplicated(fuel$Model),]
+
+foo <- as.data.frame(table(routes_uk$Aircraft))
+foo <- left_join(foo, fuel, by = c("Var1" = "Model"))
