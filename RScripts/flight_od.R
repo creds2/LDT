@@ -1,5 +1,6 @@
 library(dplyr)
 library(stplanr)
+library(ggmap)
 
 # Flights OD Data
 
@@ -158,6 +159,7 @@ saveRDS(airports_sf, "airports_sf.Rds")
 
 
 flow_sf  <- od2line(flow, airports_sf[,"origin_destination"])
-qtm(flow_sf)
 
+qtm(flow_sf)
+saveRDS(flow_sf,"data/flow_sf.Rds")
 

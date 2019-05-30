@@ -25,6 +25,8 @@ names(planes) <- c("Name","IATA","ICAO")
 routes$OriginID[routes$Origin == "HYD"] <- "12087"
 routes$DestID[routes$Dest == "HYD"] <- "12087"
 
+
+
 airports_uk <- airports[airports$Country == "United Kingdom",]
 routes_uk <- routes[routes$OriginID %in% airports_uk$AirportID | 
                       routes$DestID %in% airports_uk$AirportID,]
