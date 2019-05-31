@@ -97,82 +97,36 @@ if(file.exists("airports_CAA.Rds")){
 }
 
 # Correct Wrong Locations
-airports_CAA$geometry[airports_CAA$name == "Sydney Canada Airport, Canada"] <-
-  st_point(c(airports$Longitude[airports$fullname == "Sydney / J.A. Douglas McCurdy Airport, Canada"],
-             airports$Latitude[airports$fullname == "Sydney / J.A. Douglas McCurdy Airport, Canada"] ))
-
-airports_CAA$geometry[airports_CAA$name == "Houston Airport, United States"] <-
-  st_point(c(airports$Longitude[airports$fullname == "George Bush Intercontinental Houston Airport, United States"],
-             airports$Latitude[airports$fullname == "George Bush Intercontinental Houston Airport, United States"] ))
-
-airports_CAA$geometry[airports_CAA$name == "Wichita Airport, United States"] <-
-  st_point(c(airports$Longitude[airports$fullname == "Wichita Eisenhower National Airport, United States"],
-             airports$Latitude[airports$fullname == "Wichita Eisenhower National Airport, United States"] ))
-
-airports_CAA$geometry[airports_CAA$name == "Denver Airport, United States"] <-
-  st_point(c(airports$Longitude[airports$fullname == "Denver International Airport, United States"],
-             airports$Latitude[airports$fullname == "Denver International Airport, United States"] ))
-
-airports_CAA$geometry[airports_CAA$name == "Phoenix Airport, United States"] <-
-  st_point(c(airports$Longitude[airports$fullname == "Phoenix Sky Harbor International Airport, United States"],
-             airports$Latitude[airports$fullname == "Phoenix Sky Harbor International Airport, United States"] ))
-
-airports_CAA$geometry[airports_CAA$name == "Grenada Airport, Grenada"] <-
-  st_point(c(airports$Longitude[airports$fullname == "Point Salines International Airport, Grenada"],
-             airports$Latitude[airports$fullname == "Point Salines International Airport, Grenada"] ))
-
-airports_CAA$geometry[airports_CAA$name == "Las Palmas Airport, Spain(Canary Islands)"] <-
-  st_point(c(airports$Longitude[airports$fullname == "Gran Canaria Airport, Spain"],
-             airports$Latitude[airports$fullname == "Gran Canaria Airport, Spain"] ))
-
-airports_CAA$geometry[airports_CAA$name == "Chateauroux Airport, France"] <-
-  st_point(c(airports$Longitude[airports$fullname == 'Châteauroux-Déols "Marcel Dassault" Airport, France'],
-             airports$Latitude[airports$fullname == 'Châteauroux-Déols "Marcel Dassault" Airport, France'] ))
-
-airports_CAA$geometry[airports_CAA$name == "Schwerin/Parchim Airport, Germany"] <-
-  st_point(c(airports$Longitude[airports$fullname == 'Schwerin Parchim Airport, Germany'],
-             airports$Latitude[airports$fullname == 'Schwerin Parchim Airport, Germany'] ))
+tidy1 <- function(x,y){
+  airports_CAA$geometry[airports_CAA$name == x] <-
+    st_point(c(airports$Longitude[airports$fullname == y],
+               airports$Latitude[airports$fullname == y] ))
+  
+}
+tidy1("Sydney Canada Airport, Canada","Sydney / J.A. Douglas McCurdy Airport, Canada")
+tidy1("Houston Airport, United States","George Bush Intercontinental Houston Airport, United States")
+tidy1("Wichita Airport, United States","Wichita Eisenhower National Airport, United States")
+tidy1("Denver Airport, United States","Denver International Airport, United States")
+tidy1("Phoenix Airport, United States","Phoenix Sky Harbor International Airport, United States")
+tidy1("Grenada Airport, Grenada","Point Salines International Airport, Grenada")
+tidy1("Las Palmas Airport, Spain(Canary Islands)","Gran Canaria Airport, Spain")
+tidy1("Chateauroux Airport, France",'Châteauroux-Déols "Marcel Dassault" Airport, France')
+tidy1("Schwerin/Parchim Airport, Germany",'Schwerin Parchim Airport, Germany')
 
 airports$Longitude[airports$fullname == 'Oslo Lufthavn, Norway'] <- 
   airports_CAA$geometry[airports_CAA$name == "Oslo (Fornebu) Airport, Norway"][[1]][1]
 airports$Latitude[airports$fullname == 'Oslo Lufthavn, Norway'] <- 
   airports_CAA$geometry[airports_CAA$name == "Oslo (Fornebu) Airport, Norway"][[1]][2]
 
-airports_CAA$geometry[airports_CAA$name == "Geilo (Dagali) Airport, Norway"] <-
-  st_point(c(airports$Longitude[airports$fullname == 'Geilo Airport Dagali, Norway'],
-             airports$Latitude[airports$fullname == 'Geilo Airport Dagali, Norway'] ))
-
-airports_CAA$geometry[airports_CAA$name == "Nis Airport, Fed Rep Yugo Serbia M'enegro"] <-
-  st_point(c(airports$Longitude[airports$fullname == 'Nis Airport, Serbia'],
-             airports$Latitude[airports$fullname == 'Nis Airport, Serbia'] ))
-
-airports_CAA$geometry[airports_CAA$name == "Amman (King Hussein) Airport, Jordan"] <-
-  st_point(c(airports$Longitude[airports$fullname == 'Amman-Marka International Airport, Jordan'],
-             airports$Latitude[airports$fullname == 'Amman-Marka International Airport, Jordan'] ))
-
-airports_CAA$geometry[airports_CAA$name == "Kassala Airport, Sudan"] <-
-  st_point(c(airports$Longitude[airports$fullname == 'Kassala Airport, Sudan'],
-             airports$Latitude[airports$fullname == 'Kassala Airport, Sudan'] ))
-
-airports_CAA$geometry[airports_CAA$name == "Dubai (World Central) Airport, United Arab Emirates"] <-
-  st_point(c(airports$Longitude[airports$fullname == 'Al Maktoum International Airport, United Arab Emirates'],
-             airports$Latitude[airports$fullname == 'Al Maktoum International Airport, United Arab Emirates'] ))
-
-airports_CAA$geometry[airports_CAA$name == "Taipei Airport, Nationalist China (Taiwan)"] <-
-  st_point(c(airports$Longitude[airports$fullname == 'Taipei Songshan Airport, Taiwan'],
-             airports$Latitude[airports$fullname == 'Taipei Songshan Airport, Taiwan'] ))
-
-airports_CAA$geometry[airports_CAA$name == "Krasnodar Airport, Russia"] <-
-  st_point(c(airports$Longitude[airports$fullname == 'Krasnodar Pashkovsky International Airport, Russia'],
-             airports$Latitude[airports$fullname == 'Krasnodar Pashkovsky International Airport, Russia'] ))
-
-airports_CAA$geometry[airports_CAA$name == "Simferopol Airport, Ukraine"] <-
-  st_point(c(airports$Longitude[airports$fullname == 'Simferopol International Airport, Ukraine'],
-             airports$Latitude[airports$fullname == 'Simferopol International Airport, Ukraine'] ))
-
-airports_CAA$geometry[airports_CAA$name == "Kharnia Airport, Greece"] <-
-  st_point(c(airports$Longitude[airports$fullname == 'Chania International Airport, Greece'],
-             airports$Latitude[airports$fullname == 'Chania International Airport, Greece'] ))
+tidy1("Geilo (Dagali) Airport, Norway",'Geilo Airport Dagali, Norway')
+tidy1("Nis Airport, Fed Rep Yugo Serbia M'enegro",'Nis Airport, Serbia')
+tidy1("Amman (King Hussein) Airport, Jordan",'Amman-Marka International Airport, Jordan')
+tidy1("Kassala Airport, Sudan",'Kassala Airport, Sudan')
+tidy1("Dubai (World Central) Airport, United Arab Emirates",'Al Maktoum International Airport, United Arab Emirates')
+tidy1("Taipei Airport, Nationalist China (Taiwan)",'Taipei Songshan Airport, Taiwan')
+tidy1("Krasnodar Airport, Russia",'Krasnodar Pashkovsky International Airport, Russia')
+tidy1("Simferopol Airport, Ukraine",'Simferopol International Airport, Ukraine')
+tidy1("Kharnia Airport, Greece",'Chania International Airport, Greece')
 
 
 
@@ -196,76 +150,27 @@ tm_shape(ap_of) +
   tm_dots(col = "red")
 
 # Fix Duplicated Airports
-airports_CAA$geometry[airports_CAA$name == "Chicago (Du Page) Airport, United States"] <-
-  st_point(c(airports$Longitude[airports$fullname == 'Dupage Airport, United States'],
-             airports$Latitude[airports$fullname == 'Dupage Airport, United States'] ))
-
-airports_CAA$geometry[airports_CAA$name == "Pontiac Airport, United States"] <-
-  st_point(c(airports$Longitude[airports$fullname == 'Oakland County International Airport, United States'],
-             airports$Latitude[airports$fullname == 'Oakland County International Airport, United States'] ))
-
-airports_CAA$geometry[airports_CAA$name == "Ciego De Avila Airport, Cuba"] <-
-  st_point(c(airports$Longitude[airports$fullname == 'Maximo Gomez Airport, Cuba'],
-             airports$Latitude[airports$fullname == 'Maximo Gomez Airport, Cuba'] ))
-
-airports_CAA$geometry[airports_CAA$name == "Aruba Airport, Isle of Curacao Neth.antilles"] <-
-  st_point(c(airports$Longitude[airports$fullname == 'Queen Beatrix International Airport, Aruba'],
-             airports$Latitude[airports$fullname == 'Queen Beatrix International Airport, Aruba'] ))
-
-airports_CAA$geometry[airports_CAA$name == "San Pedro (Cape Verde) Airport, Cape Verde Islands"] <-
-  st_point(c(airports$Longitude[airports$fullname == 'São Pedro Airport, Cape Verde'],
-             airports$Latitude[airports$fullname == 'São Pedro Airport, Cape Verde'] ))
-
-airports_CAA$geometry[airports_CAA$name == "Reykjavik Airport, Iceland"] <-
-  st_point(c(airports$Longitude[airports$fullname == 'Reykjavik Airport, Iceland'],
-             airports$Latitude[airports$fullname == 'Reykjavik Airport, Iceland'] ))
-
-airports_CAA$geometry[airports_CAA$name == "Oporto (Portugal) Airport, Portugal(Excluding Madeira)"] <-
-  st_point(c(airports$Longitude[airports$fullname == 'Francisco de Sá Carneiro Airport, Portugal'],
-             airports$Latitude[airports$fullname == 'Francisco de Sá Carneiro Airport, Portugal'] ))
-
-airports_CAA$geometry[airports_CAA$name == "Monte Real Airport, Portugal(Excluding Madeira)"] <-
-  st_point(c(airports$Longitude[airports$fullname == 'Monte Real Air Base, Portugal'],
-             airports$Latitude[airports$fullname == 'Monte Real Air Base, Portugal'] ))
-
-airports_CAA$geometry[airports_CAA$name == "Lisbon Airport, Portugal(Excluding Madeira)"] <-
-  st_point(c(airports$Longitude[airports$fullname == 'Humberto Delgado Airport (Lisbon Portela Airport), Portugal'],
-             airports$Latitude[airports$fullname == 'Humberto Delgado Airport (Lisbon Portela Airport), Portugal'] ))
-
-airports_CAA$geometry[airports_CAA$name == "Cascais Airport, Portugal(Excluding Madeira)"] <-
-  st_point(c(airports$Longitude[airports$fullname == 'Cascais Airport, Portugal'],
-             airports$Latitude[airports$fullname == 'Cascais Airport, Portugal'] ))
-
-airports_CAA$geometry[airports_CAA$name == "Azores Santa Maria Airport, Portugal(Excluding Madeira)"] <-
-  st_point(c(airports$Longitude[airports$fullname == 'Santa Maria Airport, Portugal'],
-             airports$Latitude[airports$fullname == 'Santa Maria Airport, Portugal'] ))
-
-airports_CAA$geometry[airports_CAA$name == "Azores Horta Airport, Portugal(Excluding Madeira)"] <-
-  st_point(c(airports$Longitude[airports$fullname == 'Horta Airport, Portugal'],
-             airports$Latitude[airports$fullname == 'Horta Airport, Portugal'] ))
+tidy1("Chicago (Du Page) Airport, United States",'Dupage Airport, United States')
+tidy1("Pontiac Airport, United States",'Oakland County International Airport, United States')
+tidy1("Ciego De Avila Airport, Cuba",'Maximo Gomez Airport, Cuba')
+tidy1("Aruba Airport, Isle of Curacao Neth.antilles",'Queen Beatrix International Airport, Aruba')
+tidy1("San Pedro (Cape Verde) Airport, Cape Verde Islands",'São Pedro Airport, Cape Verde')
+tidy1("Reykjavik Airport, Iceland",'Reykjavik Airport, Iceland')
+tidy1("Oporto (Portugal) Airport, Portugal(Excluding Madeira)",'Francisco de Sá Carneiro Airport, Portugal')
+tidy1("Monte Real Airport, Portugal(Excluding Madeira)",'Monte Real Air Base, Portugal')
+tidy1("Lisbon Airport, Portugal(Excluding Madeira)",'Humberto Delgado Airport (Lisbon Portela Airport), Portugal')
+tidy1("Cascais Airport, Portugal(Excluding Madeira)",'Cascais Airport, Portugal')
+tidy1("Azores Santa Maria Airport, Portugal(Excluding Madeira)",'Santa Maria Airport, Portugal')
+tidy1("Azores Horta Airport, Portugal(Excluding Madeira)",'Horta Airport, Portugal')
 
 airports_CAA$geometry[airports_CAA$name == "Casablanca Anfa Airport, Morocco"] <-
   st_point(c(-7.660556,33.556944))
 
-airports_CAA$geometry[airports_CAA$name == "Kinloss Airport, United Kingdom"] <-
-  st_point(c(airports$Longitude[airports$fullname == 'RAF Kinloss, United Kingdom'],
-             airports$Latitude[airports$fullname == 'RAF Kinloss, United Kingdom'] ))
-
-airports_CAA$geometry[airports_CAA$name == "Forres Airport, United Kingdom"] <-
-  st_point(c(airports$Longitude[airports$fullname == 'RAF Kinloss, United Kingdom'],
-             airports$Latitude[airports$fullname == 'RAF Kinloss, United Kingdom'] ))
-
-airports_CAA$geometry[airports_CAA$name == "Leuchars Airport, United Kingdom"] <-
-  st_point(c(airports$Longitude[airports$fullname == 'RAF Leuchars, United Kingdom'],
-             airports$Latitude[airports$fullname == 'RAF Leuchars, United Kingdom'] ))
-
-airports_CAA$geometry[airports_CAA$name == "Unst Airport, United Kingdom"] <-
-  st_point(c(airports$Longitude[airports$fullname == 'Unst Airport, United Kingdom'],
-             airports$Latitude[airports$fullname == 'Unst Airport, United Kingdom'] ))
-
-airports_CAA$geometry[airports_CAA$name == "Filton Airport, United Kingdom"] <-
-  st_point(c(airports$Longitude[airports$fullname == 'Bristol Filton Airport, United Kingdom'],
-             airports$Latitude[airports$fullname == 'Bristol Filton Airport, United Kingdom'] ))
+tidy1("Kinloss Airport, United Kingdom",'RAF Kinloss, United Kingdom')
+tidy1("Forres Airport, United Kingdom",'RAF Kinloss, United Kingdom')
+tidy1("Leuchars Airport, United Kingdom",'RAF Leuchars, United Kingdom')
+tidy1("Unst Airport, United Kingdom",'Unst Airport, United Kingdom')
+tidy1("Filton Airport, United Kingdom",'Bristol Filton Airport, United Kingdom')
 
 airports_CAA$geometry[airports_CAA$name == "Haydock Park Airport, United Kingdom"] <-
   st_point(c(-2.6243584,53.4797728))
@@ -273,44 +178,19 @@ airports_CAA$geometry[airports_CAA$name == "Haydock Park Airport, United Kingdom
 airports_CAA$geometry[airports_CAA$name == "Coal Aston Airport, United Kingdom"] <-
   st_point(c(-1.430556,53.304722))
 
-airports_CAA$geometry[airports_CAA$name == "St Nazaire Airport, France"] <-
-  st_point(c(airports$Longitude[airports$fullname == 'Saint-Nazaire-Montoir Airport, France'],
-             airports$Latitude[airports$fullname == 'Saint-Nazaire-Montoir Airport, France'] ))
+tidy1("St Nazaire Airport, France",'Saint-Nazaire-Montoir Airport, France')
 
 airports_CAA$geometry[airports_CAA$name == "Coal Aston Airport, United Kingdom"] <-
   st_point(c(-0.250833,51.765833))
 
-airports_CAA$geometry[airports_CAA$name == "Villacoublay Airport, France"] <-
-  st_point(c(airports$Longitude[airports$fullname == 'Villacoublay-Vélizy (BA 107) Air Base, France'],
-             airports$Latitude[airports$fullname == 'Villacoublay-Vélizy (BA 107) Air Base, France'] ))
-
-airports_CAA$geometry[airports_CAA$name == "Reims Airport, France"] <-
-  st_point(c(airports$Longitude[airports$fullname == 'Reims-Prunay Airport, France'],
-             airports$Latitude[airports$fullname == 'Reims-Prunay Airport, France'] ))
-
-airports_CAA$geometry[airports_CAA$name == "Pontoise Airport, France"] <-
-  st_point(c(airports$Longitude[airports$fullname == 'Pontoise - Cormeilles-en-Vexin Airport, France'],
-             airports$Latitude[airports$fullname == 'Pontoise - Cormeilles-en-Vexin Airport, France'] ))
-
-airports_CAA$geometry[airports_CAA$name == "Guyancourt Airport, France"] <-
-  st_point(c(airports$Longitude[airports$fullname == 'Toussus-le-Noble Airport, France'],
-             airports$Latitude[airports$fullname == 'Toussus-le-Noble Airport, France'] ))
-
-airports_CAA$geometry[airports_CAA$name == "Amiens Airport, France"] <-
-  st_point(c(airports$Longitude[airports$fullname == 'Amiens-Glisy Airport, France'],
-             airports$Latitude[airports$fullname == 'Amiens-Glisy Airport, France'] ))
-
-airports_CAA$geometry[airports_CAA$name == "Ouargla Airport, Algeria"] <-
-  st_point(c(airports$Longitude[airports$fullname == 'Ain el Beida Airport, Algeria'],
-             airports$Latitude[airports$fullname == 'Ain el Beida Airport, Algeria'] ))
-
-airports_CAA$geometry[airports_CAA$name == "In Salah Airport, Algeria"] <-
-  st_point(c(airports$Longitude[airports$fullname == 'In Salah Airport, Algeria'],
-             airports$Latitude[airports$fullname == 'In Salah Airport, Algeria'] ))
-
-airports_CAA$geometry[airports_CAA$name == "Volkel Airport, Netherlands"] <-
-  st_point(c(airports$Longitude[airports$fullname == 'Volkel Air Base, Netherlands'],
-             airports$Latitude[airports$fullname == 'Volkel Air Base, Netherlands'] ))
+tidy1("Villacoublay Airport, France",'Villacoublay-Vélizy (BA 107) Air Base, France')
+tidy1("Reims Airport, France",'Reims-Prunay Airport, France')
+tidy1("Pontoise Airport, France",'Pontoise - Cormeilles-en-Vexin Airport, France')
+tidy1("Guyancourt Airport, France",'Toussus-le-Noble Airport, France')
+tidy1("Amiens Airport, France",'Amiens-Glisy Airport, France')
+tidy1("Ouargla Airport, Algeria",'Ain el Beida Airport, Algeria')
+tidy1("In Salah Airport, Algeria",'In Salah Airport, Algeria')
+tidy1("Volkel Airport, Netherlands",'Volkel Air Base, Netherlands')
 
 airports_CAA$geometry[airports_CAA$name == "Wildenrath Airport, Germany"] <-
   st_point(c(6.221667,51.114444))
@@ -318,12 +198,27 @@ airports_CAA$geometry[airports_CAA$name == "Wildenrath Airport, Germany"] <-
 airports_CAA$geometry[airports_CAA$name == "Bruggen Airport, Germany"] <-
   st_point(c(6.129444,51.2))
 
-airports_CAA$geometry[airports_CAA$name == "Moenchengladbach Airport, Germany"] <-
-  st_point(c(airports$Longitude[airports$fullname == 'Mönchengladbach Airport, Germany'],
-             airports$Latitude[airports$fullname == 'Mönchengladbach Airport, Germany'] ))
+tidy1("Moenchengladbach Airport, Germany",'Mönchengladbach Airport, Germany')
 
 airports_CAA$geometry[airports_CAA$name == "Frejus Airport, France"] <-
   st_point(c(6.735556,43.417222))
+
+tidy1("Koblenz Airport, Germany",'Koblenz-Winningen Airfield, Germany')
+airports_CAA$geometry[airports_CAA$name == "St Moritz Airport, Switzerland"] <-
+  st_point(c(9.883889,46.533889))
+tidy1("Port Gentil Airport, Gabon",'Port Gentil Airport, Gabon')
+tidy1("Oslo (Fornebu) Airport, Norway",'Oslo, Fornebu Airport, Norway')
+
+airports_CAA$geometry[airports_CAA$name == "Ingolstadt Airport, Germany"] <-
+  st_point(c(11.533889,48.715556))
+airports_CAA$geometry[airports_CAA$name == "Satenas Airport, Sweden"] <-
+  st_point(c(12.7144003,58.4263992))
+
+tidy1("Sirte/Surt Airport, Libya",'Gardabya Airport, Libya')
+tidy1("Sebha Airport, Libya",'Sabha Airport, Libya')
+
+airports_CAA$geometry[airports_CAA$name == "Satenas Airport, Sweden"] <-
+  st_point(c(13.138056,52.474444))
 
 
 
