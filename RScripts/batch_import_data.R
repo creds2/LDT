@@ -101,6 +101,7 @@ tidy1 <- function(x,y){
   airports_CAA$geometry[airports_CAA$name == x] <-
     st_point(c(airports$Longitude[airports$fullname == y],
                airports$Latitude[airports$fullname == y] ))
+  assign('airports_CAA',airports_CAA,envir=.GlobalEnv)
   
 }
 tidy1("Sydney Canada Airport, Canada","Sydney / J.A. Douglas McCurdy Airport, Canada")
@@ -127,27 +128,6 @@ tidy1("Taipei Airport, Nationalist China (Taiwan)",'Taipei Songshan Airport, Tai
 tidy1("Krasnodar Airport, Russia",'Krasnodar Pashkovsky International Airport, Russia')
 tidy1("Simferopol Airport, Ukraine",'Simferopol International Airport, Ukraine')
 tidy1("Kharnia Airport, Greece",'Chania International Airport, Greece')
-
-
-
-
-
-
-# Match to nearest openflights airport
-ap_CAA <- as.data.frame(st_coordinates(airports_CAA))
-ap_CAA$nameCAA <- airports_CAA$name
-ap_of <- airports[,c("fullname","Longitude","Latitude")]
-nn_res <- nn2(ap_of[,c("Longitude","Latitude")], ap_CAA[,c("X","Y")] , k = 1 )
-ap_CAA$nameOF <- ap_of$fullname[as.numeric(nn_res$nn.idx)]
-ap_CAA$dist <- as.numeric(nn_res$nn.dists)
-
-# Plot to compare
-ap_of <- st_as_sf(ap_of, coords = c("Longitude","Latitude"), crs = 4326)
-ap_CAA <- st_as_sf(ap_CAA, coords = c("X","Y"), crs = 4326)
-tm_shape(ap_of) +
-  tm_dots(col = "black") +
-  tm_shape(ap_CAA[ap_CAA$dist > 0.031,]) +
-  tm_dots(col = "red")
 
 # Fix Duplicated Airports
 tidy1("Chicago (Du Page) Airport, United States",'Dupage Airport, United States')
@@ -220,7 +200,23 @@ tidy1("Sebha Airport, Libya",'Sabha Airport, Libya')
 airports_CAA$geometry[airports_CAA$name == "Satenas Airport, Sweden"] <-
   st_point(c(13.138056,52.474444))
 
+tidy1("Asmara Airport, Ethiopia",'Asmara International Airport, Eritrea')
 
+# Match to nearest openflights airport
+ap_CAA <- as.data.frame(st_coordinates(airports_CAA))
+ap_CAA$nameCAA <- airports_CAA$name
+ap_of <- airports[,c("fullname","Longitude","Latitude")]
+nn_res <- nn2(ap_of[,c("Longitude","Latitude")], ap_CAA[,c("X","Y")] , k = 1 )
+ap_CAA$nameOF <- ap_of$fullname[as.numeric(nn_res$nn.idx)]
+ap_CAA$dist <- as.numeric(nn_res$nn.dists)
+
+# Plot to compare
+ap_of <- st_as_sf(ap_of, coords = c("Longitude","Latitude"), crs = 4326)
+ap_CAA <- st_as_sf(ap_CAA, coords = c("X","Y"), crs = 4326)
+tm_shape(ap_of) +
+  tm_dots(col = "black") +
+  tm_shape(ap_CAA[ap_CAA$dist > 0.031,]) +
+  tm_dots(col = "red")
 
 # Exclude any poor matches
 ap_CAA$nameOF[ap_CAA$dist > 0.031] <- NA
