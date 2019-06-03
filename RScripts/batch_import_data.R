@@ -35,7 +35,7 @@ data_raw <- dplyr::bind_rows(data_raw)
 
 flow <- data_raw %>%
   group_by(reporting_airport, origin_destination, origin_destination_country, year) %>%
-  summarise(total_flights = sum(total_flights)) %>%
+  summarise(total_flights = sum(total_flights, na.rm = TRUE)) %>%
   spread(year, total_flights)
 
 
@@ -95,6 +95,7 @@ if(file.exists("airports_CAA.Rds")){
   airports_CAA <- sf::st_as_sf(airports_CAA[!is.na(airports_CAA$lon),], coords = c("lon","lat"), crs = 4326)
   saveRDS(airports_CAA, "airports_CAA.Rds")
 }
+airports_CAA$name <- as.character(airports_CAA$name)
 
 # Correct Wrong Locations
 tidy1 <- function(x,y){
@@ -196,11 +197,21 @@ airports_CAA$geometry[airports_CAA$name == "Satenas Airport, Sweden"] <-
 
 tidy1("Sirte/Surt Airport, Libya",'Gardabya Airport, Libya')
 tidy1("Sebha Airport, Libya",'Sabha Airport, Libya')
+tidy1("Asmara Airport, Ethiopia",'Asmara International Airport, Eritrea')
+tidy1("Elat Airport, Israel",'Eilat Airport, Israel')
 
-airports_CAA$geometry[airports_CAA$name == "Satenas Airport, Sweden"] <-
+airports_CAA$geometry[airports_CAA$name == "Gatow Airport, Germany"] <-
   st_point(c(13.138056,52.474444))
 
-tidy1("Asmara Airport, Ethiopia",'Asmara International Airport, Eritrea')
+tidy1("Mora Airport, Sweden",'Mora Airport, Sweden')
+tidy1("Akrotiri Airport, Cyprus",'RAF Akrotiri, Cyprus')
+airports_CAA$geometry[airports_CAA$name == "Hatfield Airport, United Kingdom"] <-
+  st_point(c(-0.250833,51.765833))
+tidy1("Cannes Airport, France",'Cannes-Mandelieu Airport, France')
+tidy1("Pretoria Airport, Republic of South Africa",'Wonderboom Airport, South Africa')
+tidy1("Osaka (Kansai) Airport, Japan",'Kansai International Airport, Japan')
+
+
 
 # Match to nearest openflights airport
 ap_CAA <- as.data.frame(st_coordinates(airports_CAA))
@@ -213,10 +224,10 @@ ap_CAA$dist <- as.numeric(nn_res$nn.dists)
 # Plot to compare
 ap_of <- st_as_sf(ap_of, coords = c("Longitude","Latitude"), crs = 4326)
 ap_CAA <- st_as_sf(ap_CAA, coords = c("X","Y"), crs = 4326)
-tm_shape(ap_of) +
-  tm_dots(col = "black") +
-  tm_shape(ap_CAA[ap_CAA$dist > 0.031,]) +
-  tm_dots(col = "red")
+# tm_shape(ap_of) +
+#   tm_dots(col = "black") +
+#   tm_shape(ap_CAA[ap_CAA$dist > 0.031,]) +
+#   tm_dots(col = "red")
 
 # Exclude any poor matches
 ap_CAA$nameOF[ap_CAA$dist > 0.031] <- NA
@@ -227,15 +238,58 @@ summary(duplicated(ap_CAA$geometry))
 dup <- ap_CAA[ap_CAA$geometry %in% ap_CAA$geometry[duplicated(ap_CAA$geometry)],]
 
 # Fix Matches to Duplicate Airports
-tm_shape(ap_of) +
-  tm_dots(col = "black") +
-  tm_shape(dup) +
-  tm_dots(col = "red")
+# tm_shape(ap_of) +
+#   tm_dots(col = "black") +
+#   tm_shape(dup) +
+#   tm_dots(col = "red")
+
+# Now Fixed som make master list of airports and flows
+ap_join <- ap_CAA
+ap_join <- st_drop_geometry(ap_join)
+ap_join <- ap_join[,c("nameCAA","nameOF")]
+ap_join$nameOF <- ifelse(is.na(ap_join$nameOF), ap_join$nameCAA, ap_join$nameOF)
+
+names(ap_join) <- c("fromAirport","fromAirportOF")
+flow <- left_join(flow, ap_join)
+names(ap_join) <- c("toAirport","toAirportOF")
+flow <- left_join(flow, ap_join)
+
+# Remove the small number of unknown flights
+flow <- flow[!is.na(flow$toAirportOF),]
+
+#Combine flows for same airport but differnt names
+flow <- flow[,c("fromAirportOF","toAirportOF","1991",as.character(1993:2018))]
+flow <- flow %>%
+  group_by(fromAirportOF, toAirportOF) %>%
+  summarise_all(sum, na.rm = TRUE)
+
+# Master Locations
+airports_final <- ap_CAA
+airports_final$nameOF <- ifelse(is.na(airports_final$nameOF), airports_final$nameCAA, airports_final$nameOF)
+airports_final <- airports_final[,c("nameOF")]
+airports_final <- airports_final[!duplicated(airports_final$nameOF),]
+saveRDS(airports_final, "airports_final.Rds")
+
+# Make Great Circle
+# Add from an to Geometry
+names(airports_final) <- c("fromAirportOF","geometry_from")
+flow <- left_join(flow, airports_final)
+names(airports_final) <- c("toAirportOF","geometry_to")
+flow <- left_join(flow, airports_final)
+
+line <- lapply(1:nrow(flow), function(i){
+  st_cast(st_combine(x = c(flow$geometry_from[i], flow$geometry_to[i])), "LINESTRING")
+})
+line <- do.call(c, line)
+line <- st_segmentize(line, units::set_units(5, km))
+flow$geometry <- line
+flow$geometry_from <- NULL
+flow$geometry_to <- NULL
+
+flow <- st_as_sf(flow, crs = 4326)
+
+flow$length_km <- round(as.numeric(st_length(flow)) / 1000, 1)
+saveRDS(flow, "flow_final.Rds")
 
 
 
-# Add from and to locations to flow
-ap_from <- ap_CAA
-names(ap_from) <- c("fromAirport","fromAirportOF","dist","geometry_from")
-ap_from$dist <- NULL
-flow <- left_join(flow, ap_from)
