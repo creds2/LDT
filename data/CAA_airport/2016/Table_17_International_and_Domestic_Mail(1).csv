@@ -1,0 +1,27 @@
+﻿rundate,reporting_period,reporting_airport_group_name,reporting_airport_name,mail_scheduled_passenger_aircraft_foreign_EU,mail_scheduled_cargo_aircraft_foreign_EU,mail_charter_passenger_aircraft_foreign_EU,mail_charter_cargo_aircraft_foreign_EU,mail_scheduled_passenger_aircraft_foreign_non_EU,mail_scheduled_cargo_aircraft_foreign_non_EU,mail_charter_passenger_aircraft_foreign_non_EU,mail_charter_cargo_aircraft_foreign_non_EU,mail_scheduled_passenger_aircraft_UK,mail_scheduled_cargo_aircraft_UK,mail_charter_passenger_aircraft_UK,mail_charter_cargo_aircraft_UK
+1/29/2018 4:05:41 PM,2016,London Area Airports,GATWICK,2054.973,0,24.127,0,3353.643,0,8.254,0,3.377,0,0,0
+1/29/2018 4:05:41 PM,2016,London Area Airports,HEATHROW,17093.702,0,1.375,0,82023.501,64.186,9.437,0,4.47,0,0,0
+1/29/2018 4:05:41 PM,2016,London Area Airports,LONDON CITY,399.694,0,0,0,1504.596,0,0,0,0,0,0,0
+1/29/2018 4:05:41 PM,2016,London Area Airports,LUTON,23.98,268.504,0,0,31.124,0,0,0,0,0,0,0
+1/29/2018 4:05:41 PM,2016,London Area Airports,STANSTED,0,21.458,0,0,1.061,130.326,0,0,0,0,0,22650.974
+1/29/2018 4:05:41 PM,2016,Non UK Reporting Airports,ALDERNEY,0,0,0,0,0,0,0,0,72.494,0.241,0,0.211
+1/29/2018 4:05:41 PM,2016,Non UK Reporting Airports,GUERNSEY,0,0,0,0,0,0,0,0,73.598,1.289,0,2873.47
+1/29/2018 4:05:41 PM,2016,Non UK Reporting Airports,ISLE OF MAN,0.037,0,5.696,0,0,0,0,0,0,0,0,2526.433
+1/29/2018 4:05:41 PM,2016,Non UK Reporting Airports,JERSEY,0,0,0,0,0,0,0,0,395.813,898.712,27.189,271.683
+1/29/2018 4:05:41 PM,2016,Other UK Airports,ABERDEEN,0.17,0,0,0.05,0.077,0,0,0,3.148,0.866,0.423,1652.814
+1/29/2018 4:05:41 PM,2016,Other UK Airports,BELFAST INTERNATIONAL,0,0,0,0,0.003,0,0,0,0,0,0,3966.553
+1/29/2018 4:05:41 PM,2016,Other UK Airports,BIRMINGHAM,7.252,0,0,0,256.622,0,0,0,0,0,0,0
+1/29/2018 4:05:41 PM,2016,Other UK Airports,EAST MIDLANDS INTERNATIONAL,0,0,0.75,0,0,0,0,0,2168.07,17143.671,0,642.636
+1/29/2018 4:05:41 PM,2016,Other UK Airports,EDINBURGH,11.086,20.487,0,0,1.126,0,0,0,2.787,14599.967,0,2083.804
+1/29/2018 4:05:41 PM,2016,Other UK Airports,EXETER,0,0,0,0,0,0,0,0,0,0,0,3236.604
+1/29/2018 4:05:41 PM,2016,Other UK Airports,GLASGOW,0.252,0,0,0,28.069,0,0,0,94.196,0.05,0,0
+1/29/2018 4:05:41 PM,2016,Other UK Airports,INVERNESS,0,0,0,0,0,0,0,0,0.146,0,0,1.746
+1/29/2018 4:05:41 PM,2016,Other UK Airports,ISLAY,0,0,0,0,0,0,0,0,72.204,0,0,0
+1/29/2018 4:05:41 PM,2016,Other UK Airports,ISLES OF SCILLY (ST.MARYS),0,0,0,0,0,0,0,0,15.1,181.7,0,0
+1/29/2018 4:05:41 PM,2016,Other UK Airports,KIRKWALL,0,0,0,0,0,0,0,0,31.194,0.389,0,0
+1/29/2018 4:05:41 PM,2016,Other UK Airports,LANDS END (ST JUST),0,0,0,0,0,0,0,0,25.8,172.1,0,0
+1/29/2018 4:05:41 PM,2016,Other UK Airports,MANCHESTER,22.664,0,1.734,0,3505.571,0,5.943,0,0.099,0,0,0
+1/29/2018 4:05:41 PM,2016,Other UK Airports,NEWCASTLE,0,0,0,8.048,2.867,0,0,0,0.242,532.942,0,4349.566
+1/29/2018 4:05:41 PM,2016,Other UK Airports,SOUTHAMPTON,39.084,0,0,0,0,0,0,0,1.566,0,0,0
+1/29/2018 4:05:41 PM,2016,Other UK Airports,TIREE,0,0,0,0,0,0,0,0,36.982,0.172,0.088,0
+
