@@ -9,7 +9,7 @@ tmap_mode("view")
 pass_int_od <- readRDS("data/CAA_int_od.Rds")
 pass_dom_od <- readRDS("data/CAA_dom_od.Rds")
 
-#airports <- readRDS("airports_final.Rds")
+airports_fixed <- readRDS("airports_final.Rds")
 airports2 <- readRDS("airports.Rds")
 #flights_flow <- readRDS("flow_final.Rds")
 
@@ -126,10 +126,205 @@ match_final$lat[match_final$foreign_airport == "rochester municipal"] <- 43.9099
 
 
 
-match_final_sf <- st_as_sf(match_final[!is.na(match_final$lon),], coords = c("lon","lat"), crs = 4326)
-qtm(match_final_sf)
 
-write_sf(match_final_sf,"data/airports_pass.gpkg")
 
 # TODO: join on UK airports
+pass_dom_od$airport1 <- tolower(pass_dom_od$airport1)
+pass_dom_od$airport2 <- tolower(pass_dom_od$airport2)
+airports2$origin_destination <- tolower(airports2$origin_destination)
+
+pass_dom_od$airport1[pass_dom_od$airport1 == "aberdeen"] <- "aberdeen international"
+pass_dom_od$airport2[pass_dom_od$airport2 == "aberdeen"] <- "aberdeen international"
+pass_dom_od$airport1[pass_dom_od$airport1 == "cardiff wales"] <- "cardiff"
+pass_dom_od$airport2[pass_dom_od$airport2 == "cardiff wales"] <- "cardiff"
+pass_dom_od$airport1[pass_dom_od$airport1 == "exeter"] <- "exeter international"
+pass_dom_od$airport2[pass_dom_od$airport2 == "exeter"] <- "exeter international"
+pass_dom_od$airport1[pass_dom_od$airport1 == "city of derry"] <- "londonderry"
+pass_dom_od$airport2[pass_dom_od$airport2 == "city of derry"] <- "londonderry"
+
+
+
 airports_dom <- unique(c(pass_dom_od$airport1, pass_dom_od$airport2))
+airports_dom <- airports_dom[order(airports_dom)]
+summary(airports_dom %in% airports2$origin_destination)
+
+dom_succ <- airports2[airports2$origin_destination %in% airports_dom,]
+dom_fail <- airports_dom[!airports_dom %in% airports2$origin_destination]
+
+if(FALSE){ # don't run by accident it costs money
+  register_google(key = Sys.getenv("GOOGLE")) # Get Google Key
+  dom_airports_missing <- paste0(dom_fail," airport, united kingdom")
+  coords_google <- ggmap::geocode(dom_airports_missing)
+  dom_airports_missing <- cbind(dom_airports_missing, coords_google)
+  saveRDS(dom_airports_missing, "data/CAA_passengers_airports_dom_google.Rds")
+}else{
+  dom_airports_missing <- readRDS("data/CAA_passengers_airports_domgoogle.Rds")
+  dom_airports_missing$dom_airports_missing <- as.character(dom_airports_missing$dom_airports_missing)
+}
+
+dom_fail <- as.data.frame(dom_airports_missing)
+names(dom_fail) <- c("full","lon","lat")
+dom_fail$origin_destination_country <- "united kingdom"
+dom_fail$origin_destination <- gsub(" airport, united kingdom","",dom_fail$full)
+
+# fix google errors
+dom_fail$lon[dom_fail$full == "wrexham airport, united kingdom"] <- -2.9504
+dom_fail$lat[dom_fail$full == "wrexham airport, united kingdom"] <- 53.0668
+
+dom_fail$lon[dom_fail$full == "woodvale airport, united kingdom"] <- -3.055556
+dom_fail$lat[dom_fail$full == "woodvale airport, united kingdom"] <- 53.581667
+
+dom_fail$lon[dom_fail$full == "portsmouth (uk) airport, united kingdom"] <- -1.05
+dom_fail$lat[dom_fail$full == "portsmouth (uk) airport, united kingdom"] <- 50.828333
+
+dom_fail$lon[dom_fail$full == "plymouth airport, united kingdom"] <- -4.105833
+dom_fail$lat[dom_fail$full == "plymouth airport, united kingdom"] <- 50.422778
+
+dom_fail$lon[dom_fail$full == "hatfield airport, united kingdom"] <- -0.250833
+dom_fail$lat[dom_fail$full == "hatfield airport, united kingdom"] <- 51.765833
+
+dom_fail$lon[dom_fail$full == "kinross airport, united kingdom"] <- -3.462222
+dom_fail$lat[dom_fail$full == "kinross airport, united kingdom"] <- 56.211944
+
+dom_fail$lon[dom_fail$full == "st kilda airport, united kingdom"] <- -8.583333
+dom_fail$lat[dom_fail$full == "st kilda airport, united kingdom"] <- 57.816667
+
+dom_fail$lon[dom_fail$full == "flotta airport, united kingdom"] <- -3.116667
+dom_fail$lat[dom_fail$full == "flotta airport, united kingdom"] <- 58.833333
+
+dom_fail$lon[dom_fail$full == "whalsay airport, united kingdom"] <- -0.927356
+dom_fail$lat[dom_fail$full == "whalsay airport, united kingdom"] <- 60.376648
+
+dom_fail$lon[dom_fail$full == "papa stour airport, united kingdom"] <- -1.7
+dom_fail$lat[dom_fail$full == "papa stour airport, united kingdom"] <- 60.316667
+
+dom_fail$lon[dom_fail$full == "peterhead airport, united kingdom"] <- -1.875
+dom_fail$lat[dom_fail$full == "peterhead airport, united kingdom"] <- 57.517
+
+# bind together
+
+dom_final <- bind_rows(dom_succ, dom_fail)
+dom_final$`1` <- NULL
+dom_final$`2` <- NULL
+
+airports_all <- match_final
+names(airports_all) <- c("airport", "country", "full","lon","lat")
+names(dom_final) <- c("airport", "country", "full","lon","lat")
+airports_all <- bind_rows(airports_all, dom_final)
+
+airports_all <- st_as_sf(airports_all[!is.na(airports_all$lon),], coords = c("lon","lat"), crs = 4326)
+qtm(airports_all)
+
+# clean up duplicated
+geom_dup <- airports_all$geometry[duplicated(airports_all$geometry)]
+
+airports_dup <- airports_all[geom_dup,]
+qtm(airports_dup)
+
+# loads of duplicates
+# some have been fixed before
+airports_dup$approx_match <- sapply(airports_dup$full, function(pattern){
+  agrep(pattern, airports_fixed$nameOF, ignore.case = TRUE, value = TRUE,
+        max.distance = 0.05)
+  
+})
+
+
+
+
+#"dallas/fort worth airport, United States of America" "dallas airport, United States of America"
+#"moline airport, United States of America" "moline (quad city) airport, United States of America"
+#"belize airport, belize" "belize city airport, belize"
+#"cunagua airport, cuba" "cunagua ( cayo coco) airport, cuba" "cunagua (cayo coco) airport, cuba"
+#"agadir (al massira) airport, morocco" "agadir airport, morocco"
+#"cranmore airport, irish republic" "sligo airport, irish republic"
+#"connaught airport, irish republic" "galway airport, irish republic"
+# "londonderry airport, united kingdom" "city of derry (eglinton) airport, united kingdom"
+# "asturias airport, spain" "asturias (aviles) airport, spain"
+#"belfast city airport, united kingdom" "belfast city (george best) airport, united kingdom"
+# "valley airport, united kingdom" "anglesey (valley) airport, united kingdom"
+# "madrid airport, spain"
+# "wick john o groats airport, united kingdom"  "Wick airport, united kingdom"
+# "liverpool" "liverpool (john lennon)"
+# "nottingham east midlands int'l" "east midlands international" "east midlands"
+# "lerwick (tingwall) airport, united kingdom" "lerwick (tingwall) airport, united kingdom"
+# "oran airport, algeria" "oran es senia"
+# "angers- marce airport, france" "angers airport, france"
+# "manston (kent int) airport, united kingdom" "kent international airport, united kingdom"
+# "toulouse airport, france" "toulouse (blagnac) airport, france"
+# "chateauroux airport, france" "chateauroux deols airport, france"
+# "varry (chalons sur marne)" "chalons sur marne airport, france"
+# "enfidha airport, tunisia" "enfidha - hammamet intl airport, tunisia"
+# "aarhus airport, denmark" "aarhus (tirstrup) airport, denmark"
+# "verona airport, italy" "verona villafranca airport, italy"
+# "ingolstadt airport, germany" "ingolstadt-manching airport, germany"
+# "goteborg (save) airport, sweden" "goteborg city airport, sweden"
+# "goteborg airport, sweden" "goteborg (landvetter) airport, sweden"
+#  tranpani airport, italy"  "trapani airport, italy"
+# "kobenhavn airport, denmark" "copenhagen airport, denmark"
+# "rouzyne airport, czech republic" "prague airport, czech republic"
+# "bydgoszcz airport, poland" "bydgoszcz/szweredowo airport, poland"
+# "modlin masovia airport, poland"  "warsaw (modlin masovia) airport, poland"
+# "warsaw" "warsaw (chopin)"
+# "volos airport, greece" "nea anchialos airport, greece"
+
+# some fix locations
+airports_all$geometry[airports_all$full == "ciego de avila airport, cuba"] <- st_point(c(-78.789444,22.026944))
+airports_all$geometry[airports_all$full == "tobago airport, trinidad and tobago"] <- st_point(c(-60.832222, 11.149722))
+airports_all$geometry[airports_all$full == "keflavik airport, iceland"] <- st_point(c(-22.605556, 63.985))
+
+airports_all$geometry[airports_all$full == "faro airport, portugal(excluding madeira)"] <- st_point(c(-7.965833,37.014444))
+airports_all$geometry[airports_all$full == "lisbon airport, portugal(excluding madeira)"] <- st_point(c(-9.134167, 38.774167))
+airports_all$geometry[airports_all$full == "funchal airport, portugal(madeira)"] <- st_point(c( -16.778056, 32.694167))
+airports_all$geometry[airports_all$full == "azores santa maria airport, portugal(excluding madeira)"] <- st_point(c(-25.171111, 36.973889))
+airports_all$geometry[airports_all$full == "oporto (portugal) airport, portugal(excluding madeira)"] <- st_point(c(-8.678056, 41.235556))
+airports_all$geometry[airports_all$full == "oporto airport, portugal(excluding madeira)"] <- st_point(c(-8.678056, 41.235556))
+airports_all$geometry[airports_all$full == "alverca airport, portugal(excluding madeira)"] <- st_point(c(-9.030097,38.883278))
+
+airports_all$geometry[airports_all$full == "ireland west(knock) airport, irish republic"] <- st_point(c(-8.818611, 53.910278))
+#airports_all$geometry[airports_all$full == "cranmore airport, irish republic"] <- st_point(c())
+#airports_all$geometry[airports_all$full == "connaught airport, irish republic"] <- st_point(c(-8.941111, 53.300278))
+
+airports_all$geometry[airports_all$full == "casablanca anfa airport, morocco"] <- st_point(c( -7.660556, 33.556944))
+airports_all$geometry[airports_all$full == "oronsay airport, united kingdom"] <- st_point(c(-6.216667,  56.066667))
+airports_all$geometry[airports_all$full == "penzance heliport airport, united kingdom"] <- st_point(c(-5.518333, 50.128056))
+airports_all$geometry[airports_all$full == "brawdy airport, united kingdom"] <- st_point(c(-5.123889, 51.883611))
+airports_all$geometry[airports_all$full == "pembrey airport, united kingdom"] <- st_point(c(-4.312222, 51.713889))
+airports_all$geometry[airports_all$full == "torrejon de ardoz airport, spain"] <- st_point(c(-3.445833, 40.496667))
+airports_all$geometry[airports_all$full == "leuchars airport, united kingdom"] <- st_point(c(-2.868611, 56.373056))
+airports_all$geometry[airports_all$full == "kinloss airport, united kingdom"] <- st_point(c(-3.560556, 57.649444))
+
+airports_all$geometry[airports_all$full == "dounreay airport, united kingdom"] <- st_point(c(-3.727778, 58.583333))
+airports_all$geometry[airports_all$full == "barrow-in-furness airport, united kingdom"] <- st_point(c(-3.2675, 54.128611))
+airports_all$geometry[airports_all$full == "haydock park airport, united kingdom"] <- st_point(c(-2.621944, 53.478056))
+airports_all$geometry[airports_all$full == "shawbury airport, united kingdom"] <- st_point(c(-2.668056, 52.798056))
+
+airports_all$geometry[airports_all$full == "filton airport, united kingdom"] <- st_point(c(-2.593611, 51.519444))
+airports_all$geometry[airports_all$full == "lyneham airport, united kingdom"] <- st_point(c(-1.993333, 51.505278))
+airports_all$geometry[airports_all$full == "coal aston airport, united kingdom"] <- st_point(c(-1.430556, 53.304722))
+airports_all$geometry[airports_all$full == "south marston airport, united kingdom"] <- st_point(c(-1.722, 51.59))
+airports_all$geometry[airports_all$full == "fetlar airport, united kingdom"] <- st_point(c(-0.866667, 60.616667))
+
+airports_all$geometry[airports_all$full == "benson airport, united kingdom"] <- st_point(c(-1.095833, 51.616389))
+airports_all$geometry[airports_all$full == "odiham airport, united kingdom"] <- st_point(c(-0.942778, 51.234167))
+airports_all$geometry[airports_all$full == "cognac airport, france"] <- st_point(c(-0.3175, 45.658333))
+
+airports_all$geometry[airports_all$full == "moret airport, france"] <- st_point(c(2.7994399, 48.3418999))
+airports_all$geometry[airports_all$full == "guyancourt airport, france"] <- st_point(c(2.0625, 48.7602997))
+airports_all$geometry[airports_all$full == "meaux airport, france"] <- st_point(c(2.834254, 48.925959))
+
+airports_all$geometry[airports_all$full == "bourg st maurice airport, france"] <- st_point(c(6.704709, 45.605897))
+airports_all$geometry[airports_all$full == "ouargla airport, algeria"] <- st_point(c(5.406667, 31.931389))
+airports_all$geometry[airports_all$full == "nancy airport, france"] <- st_point(c(6.226111, 48.692222))
+
+airports_all$geometry[airports_all$full == "wildenrath airport, germany"] <- st_point(c(6.221667, 51.114444))
+airports_all$geometry[airports_all$full == "bruggen airport, germany"] <- st_point(c(6.129444, 51.2))
+airports_all$geometry[airports_all$full == "oslo (fornebu) airport, norway"] <- st_point(c(10.616667, 59.883333))
+
+airports_all$geometry[airports_all$full == "vicenza airport, italy"] <- st_point(c(11.529722, 45.573333))
+airports_all$geometry[airports_all$full == "gatow airport, germany"] <- st_point(c(13.138056, 52.474444))
+airports_all$geometry[airports_all$full == "capri airport, italy"] <- st_point(c(14.240273, 40.551988))
+airports_all$geometry[airports_all$full == "mora airport, sweden"] <- st_point(c(14.499944, 60.960972))
+airports_all$geometry[airports_all$full == "bucharest (baneasa) airport, romania"] <- st_point(c(26.103611, 44.503611))
+
+write_sf(airports_all,"data/airports_pass.gpkg")
