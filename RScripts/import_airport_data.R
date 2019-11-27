@@ -127,10 +127,6 @@ for(i in 1:length(zips)){
 
   }
   
-  
-  
-  
-  
   res_transit[[i]] <- transit
   res_int_od[[i]] <- int_od
   res_dom_od[[i]] <- dom_od
@@ -142,6 +138,69 @@ for(i in 1:length(zips)){
   
   unlink("tmp", recursive = TRUE)
 }
+
+for(i in seq(length(zips) + 1, length(zips) + 4)){
+  dir <- i - length(zips) + 2014
+  files_csv <- list.files(file.path(path, dir), pattern = ".csv", full.names = TRUE)
+  files <- files_csv
+  
+  transit <- files[grep("transit", files,ignore.case = TRUE)]
+  transit <- readr::read_csv(transit)
+  if(all(c("this_period","rpt_apt_name","total_pax_tp","term_pax_tp","tran_pax_tp") %in% names(transit))){
+    transit <- transit[,c("this_period","rpt_apt_name","total_pax_tp","term_pax_tp","tran_pax_tp")]
+    
+  } else if (all(c("this_period","airport",paste0("total_pax_",yr),paste0("terminal_pax_",yr),paste0("transit_pax_",yr)) %in% names(transit))){
+    transit <- transit[,c("this_period","airport",paste0("total_pax_",yr),paste0("terminal_pax_",yr),paste0("transit_pax_",yr))]
+  } else if (all(c("this_period","rpt_apt_name",paste0("total_pax_",yr),paste0("terminal_pax_",yr),paste0("transit_pax_",yr)) %in% names(transit))){
+    transit <- transit[,c("this_period","rpt_apt_name",paste0("total_pax_",yr),paste0("terminal_pax_",yr),paste0("transit_pax_",yr))]
+  } else {
+    stop("unknown names in transit")
+  }
+  
+  
+  names(transit) <- c("year","airport","total_pax","terminating_pax","transit_pax")
+  
+  int_od <- files[grep("ntl_air_pax_route", files,ignore.case = TRUE)] 
+  int_od <- readr::read_csv(int_od)
+  if(all(c("report_period","uk_apt","foreign_country","foreign_apt","ty_t_pax", "ty_s_pax","ty_c_pax") %in% names(int_od))){
+    int_od <- int_od[,c("report_period","uk_apt","foreign_country","foreign_apt","ty_t_pax", "ty_s_pax","ty_c_pax")]
+  } else if (all(c("report_period","UK_airport","foreign_country","foreign_airport",paste0(yr,"_total_pax"), paste0(yr,"_scheduled_pax"),paste0(yr,"_charter_pax")) %in% names(int_od))) {
+    int_od <- int_od[,c("report_period","UK_airport","foreign_country","foreign_airport",paste0(yr,"_total_pax"), paste0(yr,"_scheduled_pax"),paste0(yr,"_charter_pax"))]
+  } else if (all(c("report_period","uk_apt","foreign_country","foreign_apt",paste0(yr,"_total_pax"), paste0(yr,"_scheduled_pax"),paste0(yr,"_charter_pax")) %in% names(int_od))){
+    int_od <- int_od[,c("report_period","uk_apt","foreign_country","foreign_apt",paste0(yr,"_total_pax"), paste0(yr,"_scheduled_pax"),paste0(yr,"_charter_pax"))]
+  } else {
+    stop("unknown names in int_od")
+  }
+  names(int_od) <- c("year","uk_airport","foreign_country","foreign_airport","total_pax", "scheduled_pax","charter_pax")
+  
+  dom_od <- files[grep("dom_air_pax_route", files,ignore.case = TRUE)] 
+  if(length(dom_od) > 1){
+    dom_od <- dom_od[1]
+  }
+  dom_od <- readr::read_csv(dom_od)
+  if(all(c("this_period","apt1_apt_name","apt2_apt_name","total_pax_tp", "total_pax_shd_tp", "total_pax_cht_tp") %in% names(dom_od))){
+    dom_od <- dom_od[,c("this_period","apt1_apt_name","apt2_apt_name","total_pax_tp", "total_pax_shd_tp", "total_pax_cht_tp")]
+  } else if (all(c("this_period","airport1","airport2",paste0("total_pax_",yr), paste0("total_pax_scheduled_",yr),paste0("total_pax_charter_",yr)) %in% names(dom_od))){
+    dom_od <- dom_od[,c("this_period","airport1","airport2",paste0("total_pax_",yr), paste0("total_pax_scheduled_",yr),paste0("total_pax_charter_",yr))]
+  } else if (all(c("this_period","apt1_apt_name","apt2_apt_name",paste0("total_pax_",yr), paste0("total_pax_shd_",yr),paste0("total_pax_cht_",yr)) %in% names(dom_od))){
+    dom_od <- dom_od[,c("this_period","apt1_apt_name","apt2_apt_name",paste0("total_pax_",yr), paste0("total_pax_shd_",yr),paste0("total_pax_cht_",yr))]
+  } else {
+    stop("unknown names in dom_od")
+  }
+  names(dom_od) <- c("year","airport1","airport2","total_pax", "scheduled_pax","charter_pax")
+  
+  res_transit[[i]] <- transit
+  res_int_od[[i]] <- int_od
+  res_dom_od[[i]] <- dom_od
+  
+  rm(transit)
+  rm(int_od)
+  rm(dom_od)
+  rm(files_csv, files)
+  
+}
+
+
 
 transit <- dplyr::bind_rows(res_transit)
 int_od <- dplyr::bind_rows(res_int_od)

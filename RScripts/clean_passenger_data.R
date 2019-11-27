@@ -23,6 +23,8 @@ pass_int_od$foreign_country <- tolower(pass_int_od$foreign_country)
 pass_int_od$foreign_airport <- gsub(" airport","",pass_int_od$foreign_airport)
 
 # fix typo differences
+pass_int_od$foreign_airport[is.na(pass_int_od$foreign_airport)] <- "="
+
 pass_int_od$foreign_country[pass_int_od$foreign_airport == "aarhus"] <- "denmark"
 pass_int_od$foreign_country[pass_int_od$foreign_country == "rumania"] <- "romania"
 pass_int_od$foreign_country[pass_int_od$foreign_country == "fed rep yugo serbia m'enegro"] <- "republic of serbia"
@@ -34,8 +36,6 @@ pass_int_od$foreign_country[pass_int_od$foreign_airport == "tivat"] <- "republic
 pass_int_od$foreign_country[pass_int_od$foreign_airport == "kosovo"] <- "kosovo"
 pass_int_od$foreign_country[pass_int_od$foreign_airport == "republic of montenegro"] <- "republic of montenegro"
 pass_int_od$foreign_country[pass_int_od$foreign_airport == "taipei"] <- "taiwan"
-
-pass_int_od$foreign_airport[is.na(pass_int_od$foreign_airport)] <- "="
 
 pass_int_od$foreign_airport[pass_int_od$foreign_airport == "ireland west knock"] <- "ireland west(knock)"
 pass_int_od$foreign_airport[pass_int_od$foreign_airport == "cologne (bonn)"] <- "cologne bonn"
@@ -61,7 +61,80 @@ pass_int_od$foreign_country[is.na(pass_int_od$foreign_country) & pass_int_od$for
 pass_int_od$foreign_country[is.na(pass_int_od$foreign_country) & pass_int_od$foreign_airport %in% c("copenhagen","billund","esbjerg","aarhus (tirstrup)")] <- "denmark"
 
 pass_int_od$foreign_country[pass_int_od$foreign_country == "usa"] <- "United States of America"
+
+# standerdise names
+tidy2 <- function(from,to){
+  pass_int_od$foreign_airport[pass_int_od$foreign_airport %in% from] <-
+    to
+  assign('pass_int_od',pass_int_od,envir=.GlobalEnv)
+}
+
+tidy2("belize", "belize city")
+tidy2("dallas/fort worth", "dallas")
+tidy2("moline", "moline (quad city)")
+tidy2("belize", "belize city")
+tidy2(c("cunagua", "cunagua ( cayo coco)"), "cunagua (cayo coco)")
+tidy2("agadir (al massira)", "agadir")
+tidy2("cranmore", "sligo")
+tidy2("connaught", "galway")
+tidy2( "londonderry", "city of derry (eglinton)")
+tidy2( "asturias", "asturias (aviles)")
+tidy2("belfast city", "belfast city (george best)")
+tidy2( "valley", "anglesey (valley)")
+tidy2( "wick john o groats",  "Wick")
+tidy2( "liverpool", "liverpool (john lennon)")
+tidy2(c("nottingham east midlands int'l", "east midlands international"), "east midlands")
+tidy2( "lerwick (tingwall)", "lerwick (tingwall)")
+tidy2( "oran", "oran es senia")
+tidy2( "angers- marce", "angers")
+tidy2( "manston (kent int)", "kent international")
+tidy2( "toulouse", "toulouse (blagnac)")
+tidy2( "chateauroux", "chateauroux deols")
+tidy2( "varry (chalons sur marne)", "chalons sur marne")
+tidy2( "enfidha", "enfidha - hammamet intl")
+tidy2( "aarhus", "aarhus (tirstrup)")
+tidy2( "verona", "verona villafranca")
+tidy2( "ingolstadt", "ingolstadt-manching")
+tidy2( "goteborg (save)", "goteborg city")
+tidy2( "goteborg", "goteborg (landvetter)")
+tidy2(  "tranpani",  "trapani")
+tidy2( "kobenhavn", "copenhagen")
+tidy2( "rouzyne", "prague")
+tidy2( "bydgoszcz", "bydgoszcz/szweredowo")
+tidy2( "modlin masovia",  "warsaw (modlin masovia)")
+tidy2( "warsaw", "warsaw (chopin)")
+tidy2( "volos", "nea anchialos")
+
+tidy2( "oporto (portugal)", "oporto")
+tidy2( "mitilini", "mytilini")
+tidy2( "izmir (cumaovasi)", "izmir (adnan menderes)")
+tidy2( "minsk int'l", "minsk")
+tidy2( "lapeenranta", "lappeenranta")
+tidy2( "alexandria ( nouzha )", "alexandria (nouzha)")
+tidy2( "alexandria", "alexandria (borg el arab)")
+tidy2( "kiev", "kiev (borispol)")
+tidy2( c("bagdhad (geca)","baghdad (saddam int)","baghdad (geca)"), "baghdad int")
+tidy2( c("baku (heyder aliyev int'l)","baku ( heyder aliyev int'l )"), "baku")
+tidy2( "bangalore", "bangalore (bengaluru)")
+tidy2( "hyderabad", "hyderabad ( rajiv ghandi )")
+tidy2( "kolkata", "calcutta")
+tidy2( "dacca", "dhakha")
+tidy2( "perth", "perth (australia)")
+tidy2( "shanghai", "shanghai (pu dong)")
+tidy2( "bangkok", "bangkok suvarnabhumi")
+tidy2( "madras/chennai", "chennai")
+tidy2( "ras nasrani", "sharm el sheikh (ophira)")
+tidy2( "alma ata", "almaty")
+tidy2( "santiago de compostela (spain)", "Santiago de Compostela")
+tidy2( "alghero/sassari", "alghero (fertilia)")
+tidy2( "beek", "maastricht")
+
 pass_airport_int <- unique(pass_int_od[,c("foreign_airport","foreign_country")])
+
+
+summary(duplicated(pass_airport_int$foreign_airport))
+bar <- pass_airport_int$foreign_airport[duplicated(pass_airport_int$foreign_airport)]
+bar <- pass_airport_int[pass_airport_int$foreign_airport %in% bar,]
 
 foo <- pass_airport_int$foreign_airport[duplicated(pass_airport_int$foreign_airport)]
 foo <- foo[foo != "="]
@@ -79,18 +152,18 @@ match_fail <- match1[is.na(match1$origin_destination), ]
 # remove the unknown airports "="
 match_fail <- match_fail[match_fail$foreign_airport != "=",]
 
-# try a fuzzy text match
-match_fail$approx_match <- sapply(match_fail$full, function(pattern){
-  agrep(pattern, airports2$full, ignore.case = TRUE, value = TRUE,
-        max.distance = 0.1)
-  
-})
-
-match_fuzzy <- match_fail[lengths(match_fail$approx_match) > 0,]
-match_fuzzy <- match_fuzzy[,c("foreign_airport","foreign_country", "approx_match")]
-match_fuzzy$approx_match <- sapply(match_fuzzy$approx_match, function(x){
-  gsub("airport","",x)
-})
+# # try a fuzzy text match
+# match_fail$approx_match <- sapply(match_fail$full, function(pattern){
+#   agrep(pattern, airports2$full, ignore.case = TRUE, value = TRUE,
+#         max.distance = 0.1)
+#   
+# })
+# 
+# match_fuzzy <- match_fail[lengths(match_fail$approx_match) > 0,]
+# match_fuzzy <- match_fuzzy[,c("foreign_airport","foreign_country", "approx_match")]
+# match_fuzzy$approx_match <- sapply(match_fuzzy$approx_match, function(x){
+#   gsub("airport","",x)
+# })
 
 # try google geocode
 if(FALSE){ # don't run by accident it costs money
@@ -105,6 +178,13 @@ if(FALSE){ # don't run by accident it costs money
 }
 
 airports_missing$airports_missing[airports_missing$airports_missing == "aarhus airport, NA"] = "aarhus airport, denmark"
+
+airports_missing$lon[airports_missing$airports_missing == "al-udeid usafb airport, qatar"] <- 51.314415
+airports_missing$lat[airports_missing$airports_missing == "al-udeid usafb airport, qatar"] <- 25.117309
+
+airports_missing$lon[airports_missing$airports_missing == "rochester municipal airport, United States of America"] <- -92.495464
+airports_missing$lat[airports_missing$airports_missing == "rochester municipal airport, United States of America"] <- 43.909981
+
 # check it is good
 ap <- st_as_sf(airports_missing[!is.na(airports_missing$lon),], coords = c("lon","lat"), crs = 4326)
 qtm(ap)
@@ -115,34 +195,35 @@ match_fail <- left_join(match_fail, airports_missing, by = c("full" = "airports_
 match_final <- bind_rows(match_succ, match_fail)
 match_final$lon[match_final$foreign_airport == "nimes"] <- match_final$`1`[match_final$foreign_airport == "nimes"]
 match_final$lat[match_final$foreign_airport == "nimes"] <- match_final$`2`[match_final$foreign_airport == "nimes"]
-
 match_final <- match_final[,c("foreign_airport","foreign_country","full","lon","lat")]
 
-match_final$lon[match_final$foreign_airport == "al-udeid usafb"] <- 51.314415
-match_final$lat[match_final$foreign_airport == "al-udeid usafb"] <- 25.117309
-
-match_final$lon[match_final$foreign_airport == "rochester municipal"] <- -92.495464
-match_final$lat[match_final$foreign_airport == "rochester municipal"] <- 43.909981
-
-
-
-
-
-# TODO: join on UK airports
+# join on UK airports
 pass_dom_od$airport1 <- tolower(pass_dom_od$airport1)
 pass_dom_od$airport2 <- tolower(pass_dom_od$airport2)
 airports2$origin_destination <- tolower(airports2$origin_destination)
 
-pass_dom_od$airport1[pass_dom_od$airport1 == "aberdeen"] <- "aberdeen international"
-pass_dom_od$airport2[pass_dom_od$airport2 == "aberdeen"] <- "aberdeen international"
-pass_dom_od$airport1[pass_dom_od$airport1 == "cardiff wales"] <- "cardiff"
-pass_dom_od$airport2[pass_dom_od$airport2 == "cardiff wales"] <- "cardiff"
-pass_dom_od$airport1[pass_dom_od$airport1 == "exeter"] <- "exeter international"
-pass_dom_od$airport2[pass_dom_od$airport2 == "exeter"] <- "exeter international"
-pass_dom_od$airport1[pass_dom_od$airport1 == "city of derry"] <- "londonderry"
-pass_dom_od$airport2[pass_dom_od$airport2 == "city of derry"] <- "londonderry"
 
+# standerdise names
+tidy3 <- function(from,to){
+  pass_dom_od$airport1[pass_dom_od$airport1 %in% from] <- to
+  pass_dom_od$airport2[pass_dom_od$airport2 %in% from] <- to
+  assign('pass_dom_od',pass_dom_od,envir=.GlobalEnv)
+}
 
+tidy3("aberdeen", "aberdeen international")
+tidy3("cardiff wales", "cardiff")
+tidy3("exeter", "exeter international")
+tidy3(c("city of derry","city of derry (eglinton)"), "londonderry")
+tidy3(c("city of derry","city of derry (eglinton)"), "londonderry")
+tidy3("belfast city", "belfast city (george best)")
+tidy3("valley", "anglesey (valley)")
+tidy3("liverpool", "liverpool (john lennon)")
+tidy3(c("nottingham east midlands int'l","east midlands international"), "east midlands")
+tidy3("lerwick  (tingwall)", "lerwick (tingwall)")
+tidy3("manston (kent int)", "kent international")
+tidy3("doncaster", "doncaster sheffield")
+tidy3("durham tees valley", "teesside airport")
+tidy3("wick john o groats", "Wick")
 
 airports_dom <- unique(c(pass_dom_od$airport1, pass_dom_od$airport2))
 airports_dom <- airports_dom[order(airports_dom)]
@@ -158,11 +239,16 @@ if(FALSE){ # don't run by accident it costs money
   dom_airports_missing <- cbind(dom_airports_missing, coords_google)
   saveRDS(dom_airports_missing, "data/CAA_passengers_airports_dom_google.Rds")
 }else{
-  dom_airports_missing <- readRDS("data/CAA_passengers_airports_domgoogle.Rds")
+  dom_airports_missing <- readRDS("data/CAA_passengers_airports_dom_google.Rds")
   dom_airports_missing$dom_airports_missing <- as.character(dom_airports_missing$dom_airports_missing)
 }
 
-dom_fail <- as.data.frame(dom_airports_missing)
+dom_airports_missing$airport <- gsub(" airport, united kingdom","",dom_airports_missing$dom_airports_missing)
+#dom_airports_missing <- as.data.frame(dom_airports_missing)
+length(dom_fail)
+dom_fail <- dom_airports_missing[dom_airports_missing$airport %in% dom_fail, ]
+nrow(dom_fail)
+
 names(dom_fail) <- c("full","lon","lat")
 dom_fail$origin_destination_country <- "united kingdom"
 dom_fail$origin_destination <- gsub(" airport, united kingdom","",dom_fail$full)
@@ -201,6 +287,10 @@ dom_fail$lat[dom_fail$full == "papa stour airport, united kingdom"] <- 60.316667
 dom_fail$lon[dom_fail$full == "peterhead airport, united kingdom"] <- -1.875
 dom_fail$lat[dom_fail$full == "peterhead airport, united kingdom"] <- 57.517
 
+dom_fail$lon[dom_fail$full == "cottesmore(raf) airport, united kingdom"] <- -0.651389
+dom_fail$lat[dom_fail$full == "cottesmore(raf) airport, united kingdom"] <- 52.729444
+
+
 # bind together
 
 dom_final <- bind_rows(dom_succ, dom_fail)
@@ -213,60 +303,7 @@ names(dom_final) <- c("airport", "country", "full","lon","lat")
 airports_all <- bind_rows(airports_all, dom_final)
 
 airports_all <- st_as_sf(airports_all[!is.na(airports_all$lon),], coords = c("lon","lat"), crs = 4326)
-qtm(airports_all)
-
-# clean up duplicated
-geom_dup <- airports_all$geometry[duplicated(airports_all$geometry)]
-
-airports_dup <- airports_all[geom_dup,]
-qtm(airports_dup)
-
-# loads of duplicates
-# some have been fixed before
-airports_dup$approx_match <- sapply(airports_dup$full, function(pattern){
-  agrep(pattern, airports_fixed$nameOF, ignore.case = TRUE, value = TRUE,
-        max.distance = 0.05)
-  
-})
-
-
-
-
-#"dallas/fort worth airport, United States of America" "dallas airport, United States of America"
-#"moline airport, United States of America" "moline (quad city) airport, United States of America"
-#"belize airport, belize" "belize city airport, belize"
-#"cunagua airport, cuba" "cunagua ( cayo coco) airport, cuba" "cunagua (cayo coco) airport, cuba"
-#"agadir (al massira) airport, morocco" "agadir airport, morocco"
-#"cranmore airport, irish republic" "sligo airport, irish republic"
-#"connaught airport, irish republic" "galway airport, irish republic"
-# "londonderry airport, united kingdom" "city of derry (eglinton) airport, united kingdom"
-# "asturias airport, spain" "asturias (aviles) airport, spain"
-#"belfast city airport, united kingdom" "belfast city (george best) airport, united kingdom"
-# "valley airport, united kingdom" "anglesey (valley) airport, united kingdom"
-# "madrid airport, spain"
-# "wick john o groats airport, united kingdom"  "Wick airport, united kingdom"
-# "liverpool" "liverpool (john lennon)"
-# "nottingham east midlands int'l" "east midlands international" "east midlands"
-# "lerwick (tingwall) airport, united kingdom" "lerwick (tingwall) airport, united kingdom"
-# "oran airport, algeria" "oran es senia"
-# "angers- marce airport, france" "angers airport, france"
-# "manston (kent int) airport, united kingdom" "kent international airport, united kingdom"
-# "toulouse airport, france" "toulouse (blagnac) airport, france"
-# "chateauroux airport, france" "chateauroux deols airport, france"
-# "varry (chalons sur marne)" "chalons sur marne airport, france"
-# "enfidha airport, tunisia" "enfidha - hammamet intl airport, tunisia"
-# "aarhus airport, denmark" "aarhus (tirstrup) airport, denmark"
-# "verona airport, italy" "verona villafranca airport, italy"
-# "ingolstadt airport, germany" "ingolstadt-manching airport, germany"
-# "goteborg (save) airport, sweden" "goteborg city airport, sweden"
-# "goteborg airport, sweden" "goteborg (landvetter) airport, sweden"
-#  tranpani airport, italy"  "trapani airport, italy"
-# "kobenhavn airport, denmark" "copenhagen airport, denmark"
-# "rouzyne airport, czech republic" "prague airport, czech republic"
-# "bydgoszcz airport, poland" "bydgoszcz/szweredowo airport, poland"
-# "modlin masovia airport, poland"  "warsaw (modlin masovia) airport, poland"
-# "warsaw" "warsaw (chopin)"
-# "volos airport, greece" "nea anchialos airport, greece"
+airports_all <- airports_all[,c("airport","country", "full","geometry")]
 
 # some fix locations
 airports_all$geometry[airports_all$full == "ciego de avila airport, cuba"] <- st_point(c(-78.789444,22.026944))
@@ -327,4 +364,61 @@ airports_all$geometry[airports_all$full == "capri airport, italy"] <- st_point(c
 airports_all$geometry[airports_all$full == "mora airport, sweden"] <- st_point(c(14.499944, 60.960972))
 airports_all$geometry[airports_all$full == "bucharest (baneasa) airport, romania"] <- st_point(c(26.103611, 44.503611))
 
+airports_all$geometry[airports_all$full == "minsk loshitsa airport, belarus"] <- st_point(c(27.539722, 53.864444))
+
+airports_all$geometry[airports_all$full == "ankara (etmesgut) airport, turkey"] <- st_point(c(32.688622, 39.949831))
+
+airports_all$geometry[airports_all$full == "reykjavik airport, iceland"] <- st_point(c(-21.940556, 64.13))
+
+airports_all$geometry[airports_all$full == "andravida airport, greece"] <- st_point(c(21.283333, 37.933333 ))
+
+airports_all$geometry[airports_all$full == "volkel airport, netherlands"] <- st_point(c(5.690833, 51.657222))
+
+# clean up duplicated
+geom_dup <- airports_all$geometry[duplicated(airports_all$geometry)]
+
+airports_dup <- airports_all[geom_dup,]
+#qtm(airports_dup)
+
+# chack for very nearby airports
+
+dists <- matrix(as.numeric(st_distance(airports_all)), nrow = nrow(airports_all))
+dists[dists == 0] <- NA
+dists[dists > 10000] <- NA
+rownames(dists) <- airports_all$airport
+colnames(dists) <- airports_all$airport
+min(dists, na.rm = TRUE)
+
+dists <- dists[rowSums(is.na(dists)) != ncol(dists), ]
+dists <- dists[,colSums(is.na(dists)) != nrow(dists)]
+
+airports_close <- airports_all[airports_all$airport %in% rownames(dists),]
+qtm(airports_close)
+
+airports_all[airports_all$full != "private strips/helipads airport, united kingdom",]
+
+
+
 write_sf(airports_all,"data/airports_pass.gpkg")
+saveRDS(pass_int_od, "data/CAA_int_od_clean.Rds")
+saveRDS(pass_dom_od, "data/CAA_dom_od_clean.Rds")
+
+qtm(airports_all)
+
+int_summ <- pass_int_od[pass_int_od$year == 2018,]
+int_summ <- int_summ %>%
+  group_by(foreign_airport) %>%
+  summarise(total_pax = sum(total_pax))
+
+
+int_summ$percent <- int_summ$total_pax / sum (int_summ$total_pax) * 100
+
+int_summ <- left_join(int_summ, airports_all, by = c("foreign_airport" = "airport"))
+int_summ <- st_as_sf(int_summ)
+
+int_summ_top <- int_summ[int_summ$percent > 0.64,]
+sum(int_summ_top$percent)
+nrow(int_summ_top)
+
+tm_shape(int_summ_top) +
+  tm_bubbles("percent", "red", border.col = "black", border.lwd=1, size.lim = c(0, 2e5))
