@@ -303,7 +303,9 @@ summary(pass_od$airport1_country %in% airports$country)
 summary(pass_od$airport2_country %in% airports$country)
 summary(pass_od$airport1 %in% airports$airport)
 summary(pass_od$airport2 %in% airports$airport)
-unique(pass_od$airport1[!pass_od$airport1 %in% airports$airport])
+unique(pass_od$airport2[!pass_od$airport2 %in% airports$airport])
+
+stop()
 
 # Match locations
 mtch <- match(airports_flights$geometry, airports$geom)
