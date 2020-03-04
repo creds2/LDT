@@ -1,3 +1,5 @@
+# Step 1 Import the files for passenger number
+
 # list zips
 
 path <- "../LDT/data/CAA_airport"
@@ -44,7 +46,7 @@ for(i in 1:length(zips)){
     transit <- readr::read_csv(transit)
     if(all(c("this_period","rpt_apt_name","total_pax_tp","term_pax_tp","tran_pax_tp") %in% names(transit))){
       transit <- transit[,c("this_period","rpt_apt_name","total_pax_tp","term_pax_tp","tran_pax_tp")]
-    
+      
     } else if (all(c("this_period","airport",paste0("total_pax_",yr),paste0("terminal_pax_",yr),paste0("transit_pax_",yr)) %in% names(transit))){
       transit <- transit[,c("this_period","airport",paste0("total_pax_",yr),paste0("terminal_pax_",yr),paste0("transit_pax_",yr))]
     } else if (all(c("this_period","rpt_apt_name",paste0("total_pax_",yr),paste0("terminal_pax_",yr),paste0("transit_pax_",yr)) %in% names(transit))){
@@ -140,7 +142,7 @@ for(i in 1:length(zips)){
       # dom_od <- dom_od[,c("this_period","apt1_apt_name","apt2_apt_name","total_pax_tp", "total_pax_shd_tp", "total_pax_cht_tp")]
       # names(dom_od) <- c("year","airport1","airport2","total_pax", "scheduled_pax","charter_pax")
     }
-
+    
   }
   
   res_transit[[i]] <- transit
@@ -225,3 +227,5 @@ dom_od <- dplyr::bind_rows(res_dom_od[lengths(res_dom_od) >0])
 saveRDS(transit, "data/CAA_transit.Rds")
 saveRDS(int_od, "data/CAA_int_od.Rds")
 saveRDS(dom_od, "data/CAA_dom_od.Rds")
+
+

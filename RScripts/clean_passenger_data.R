@@ -11,7 +11,11 @@ pass_dom_od <- readRDS("data/CAA_dom_od.Rds")
 
 airports_fixed <- readRDS("airports_final.Rds")
 airports2 <- readRDS("airports.Rds")
+
 #flights_flow <- readRDS("flow_final.Rds")
+
+airports2$origin_destination_country[airports2$origin_destination_country == "portugal(excluding madeira)"] <- "portugal"
+airports2$origin_destination_country[airports2$origin_destination_country == "portugal(madeira)"] <- "portugal"
 
 # Remove totals
 pass_int_od <- pass_int_od[!grepl("Total",pass_int_od$uk_airport),]
@@ -28,6 +32,10 @@ pass_int_od$foreign_airport[is.na(pass_int_od$foreign_airport)] <- "="
 pass_int_od$foreign_country[pass_int_od$foreign_airport == "aarhus"] <- "denmark"
 pass_int_od$foreign_country[pass_int_od$foreign_country == "rumania"] <- "romania"
 pass_int_od$foreign_country[pass_int_od$foreign_country == "fed rep yugo serbia m'enegro"] <- "republic of serbia"
+pass_int_od$foreign_country[pass_int_od$foreign_country == "fed rep yugosl',s'bia,m'enegro"] <- "republic of serbia"
+pass_int_od$foreign_country[pass_int_od$foreign_country == "fed rep yugo serbia m'enegr0"] <- "republic of serbia"
+pass_int_od$foreign_country[pass_int_od$foreign_country == "belorus"] <- "belarus"
+pass_int_od$foreign_country[pass_int_od$foreign_country == "burma"] <- "myanmar"
 
 pass_int_od$foreign_country[pass_int_od$foreign_airport == "podgorica"] <- "republic of montenegro"
 pass_int_od$foreign_country[pass_int_od$foreign_airport == "pristina"] <- "kosovo"
@@ -36,6 +44,7 @@ pass_int_od$foreign_country[pass_int_od$foreign_airport == "tivat"] <- "republic
 pass_int_od$foreign_country[pass_int_od$foreign_airport == "kosovo"] <- "kosovo"
 pass_int_od$foreign_country[pass_int_od$foreign_airport == "republic of montenegro"] <- "republic of montenegro"
 pass_int_od$foreign_country[pass_int_od$foreign_airport == "taipei"] <- "taiwan"
+pass_int_od$foreign_country[pass_int_od$foreign_airport == "bahrain"] <- "bahrain"
 
 pass_int_od$foreign_airport[pass_int_od$foreign_airport == "ireland west knock"] <- "ireland west(knock)"
 pass_int_od$foreign_airport[pass_int_od$foreign_airport == "cologne (bonn)"] <- "cologne bonn"
@@ -61,6 +70,16 @@ pass_int_od$foreign_country[is.na(pass_int_od$foreign_country) & pass_int_od$for
 pass_int_od$foreign_country[is.na(pass_int_od$foreign_country) & pass_int_od$foreign_airport %in% c("copenhagen","billund","esbjerg","aarhus (tirstrup)")] <- "denmark"
 
 pass_int_od$foreign_country[pass_int_od$foreign_country == "usa"] <- "United States of America"
+pass_int_od$foreign_country[pass_int_od$foreign_country == "united states of america"] <- "United States of America"
+
+pass_int_od$foreign_country[pass_int_od$foreign_country == "spain (excluding canary islands)"] <- "spain"
+pass_int_od$foreign_country[pass_int_od$foreign_country == "spain (canary islands)"] <- "spain"
+pass_int_od$foreign_country[pass_int_od$foreign_country == "spain(canary islands)"] <- "spain"
+
+pass_int_od$foreign_country[pass_int_od$foreign_country == "portugal(excluding madeira)"] <- "portugal"
+pass_int_od$foreign_country[pass_int_od$foreign_country == "portugal(madeira)"] <- "portugal"
+pass_int_od$foreign_country[pass_int_od$foreign_country == "portugal (excluding madeira)"] <- "portugal"
+pass_int_od$foreign_country[pass_int_od$foreign_country == "portugal (madeira)"] <- "portugal"
 
 # standerdise names
 tidy2 <- function(from,to){
@@ -72,7 +91,6 @@ tidy2 <- function(from,to){
 tidy2("belize", "belize city")
 tidy2("dallas/fort worth", "dallas")
 tidy2("moline", "moline (quad city)")
-tidy2("belize", "belize city")
 tidy2(c("cunagua", "cunagua ( cayo coco)"), "cunagua (cayo coco)")
 tidy2("agadir (al massira)", "agadir")
 tidy2("cranmore", "sligo")
@@ -129,6 +147,14 @@ tidy2( "santiago de compostela (spain)", "Santiago de Compostela")
 tidy2( "alghero/sassari", "alghero (fertilia)")
 tidy2( "beek", "maastricht")
 
+tidy2("chicago", "chicago (o'hare)")
+tidy2("washington", "washington (dulles)")
+tidy2("kuala lumpur", "kuala lumpur (sepang)")
+tidy2("georgetown", "georgetown (guyana)")
+
+
+
+
 pass_airport_int <- unique(pass_int_od[,c("foreign_airport","foreign_country")])
 
 
@@ -139,8 +165,8 @@ bar <- pass_airport_int[pass_airport_int$foreign_airport %in% bar,]
 foo <- pass_airport_int$foreign_airport[duplicated(pass_airport_int$foreign_airport)]
 foo <- foo[foo != "="]
 if(length(foo) > 0){
-  stop("Duplicated airport names")
   foo  <- pass_airport_int[pass_airport_int$foreign_airport %in% foo,]
+  stop("Duplicated airport names")
 }
 
 pass_airport_int$full <- paste0(pass_airport_int$foreign_airport," airport, ",pass_airport_int$foreign_country)
@@ -379,7 +405,12 @@ geom_dup <- airports_all$geometry[duplicated(airports_all$geometry)]
 
 airports_dup <- airports_all[geom_dup,]
 #qtm(airports_dup)
+#airports3 <- readRDS("data/airports_missing.Rds")
+#airports3 <- st_as_sf(airports3[!is.na(airports3$lon),], coords = c("lon","lat"), crs = 4326)
+#names(airports3) <- names(airports_all)
+#airports_all <- rbind(airports_all, airports3)
 
+#foo = unique(airports_all)
 # chack for very nearby airports
 
 dists <- matrix(as.numeric(st_distance(airports_all)), nrow = nrow(airports_all))
@@ -397,7 +428,21 @@ qtm(airports_close)
 
 airports_all[airports_all$full != "private strips/helipads airport, united kingdom",]
 
+# final missing airpots
+airports_missing2 <- pass_int_od[!pass_int_od$foreign_airport %in% airports_all$airport,]
+airports_missing2 <- airports_missing2[!duplicated(airports_missing2$foreign_airport),]
+airports_missing2 <- airports_missing2[,c("foreign_airport","foreign_country")]
+airports_missing2 <- airports_missing2[airports_missing2$foreign_airport != "londtrop",]
+if(nrow(airports_missing2) > 0){
+  stop("missing airports")
+}
 
+airports_all <- airports_all[airports_all$airport != "unknown",]
+airports_all <- airports_all[airports_all$airport != "=",]
+airports_all <- unique(airports_all)
+
+#foo <- airports_all$airport[duplicated(airports_all$airport)]
+#foo <- airports_all[airports_all$airport %in% foo,]
 
 write_sf(airports_all,"data/airports_pass.gpkg")
 saveRDS(pass_int_od, "data/CAA_int_od_clean.Rds")
