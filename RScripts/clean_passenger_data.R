@@ -105,7 +105,7 @@ tidy2(c("nottingham east midlands int'l", "east midlands international"), "east 
 tidy2( "lerwick (tingwall)", "lerwick (tingwall)")
 tidy2( "oran", "oran es senia")
 tidy2( "angers- marce", "angers")
-tidy2( "manston (kent int)", "kent international")
+tidy2( "manston (kent int)", "kent")
 tidy2( "toulouse", "toulouse (blagnac)")
 tidy2( "chateauroux", "chateauroux deols")
 tidy2( "varry (chalons sur marne)", "chalons sur marne")
@@ -246,7 +246,7 @@ tidy3("valley", "anglesey (valley)")
 tidy3("liverpool", "liverpool (john lennon)")
 tidy3(c("nottingham east midlands int'l","east midlands international"), "east midlands")
 tidy3("lerwick  (tingwall)", "lerwick (tingwall)")
-tidy3("manston (kent int)", "kent international")
+tidy3("manston (kent int)", "kent")
 tidy3("doncaster", "doncaster sheffield")
 tidy3("durham tees valley", "teesside airport")
 tidy3("wick john o groats", "Wick")
@@ -405,10 +405,10 @@ geom_dup <- airports_all$geometry[duplicated(airports_all$geometry)]
 
 airports_dup <- airports_all[geom_dup,]
 #qtm(airports_dup)
-#airports3 <- readRDS("data/airports_missing.Rds")
-#airports3 <- st_as_sf(airports3[!is.na(airports3$lon),], coords = c("lon","lat"), crs = 4326)
-#names(airports3) <- names(airports_all)
-#airports_all <- rbind(airports_all, airports3)
+airports3 <- readRDS("data/airports_missing.Rds")
+airports3 <- st_as_sf(airports3[!is.na(airports3$lon),], coords = c("lon","lat"), crs = 4326)
+names(airports3) <- names(airports_all)
+airports_all <- rbind(airports_all, airports3)
 
 #foo = unique(airports_all)
 # chack for very nearby airports
@@ -443,6 +443,20 @@ airports_all <- unique(airports_all)
 
 #foo <- airports_all$airport[duplicated(airports_all$airport)]
 #foo <- airports_all[airports_all$airport %in% foo,]
+
+# Dom data has and AB BA problems
+pass_dom_od$key <- stplanr::od_id_szudzik(pass_dom_od$airport1, pass_dom_od$airport2)
+
+pass_dom_od <- pass_dom_od %>%
+  group_by(year, key) %>%
+  summarise(airport1 = airport1[1],
+            airport2 = airport2[1],
+            total_pax = max(total_pax, na.rm = TRUE),
+            scheduled_pax = max(scheduled_pax, na.rm = TRUE),
+            charter_pax = max(charter_pax, na.rm = TRUE))
+
+pass_dom_od$key <- NULL
+
 
 write_sf(airports_all,"data/airports_pass.gpkg")
 saveRDS(pass_int_od, "data/CAA_int_od_clean.Rds")

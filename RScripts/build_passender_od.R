@@ -6,6 +6,7 @@ airports <- read_sf("data/airports_pass.gpkg")
 pass_int_od <- readRDS("data/CAA_int_od_clean.Rds")
 pass_dom_od <- readRDS("data/CAA_dom_od_clean.Rds")
 
+
 head(pass_dom_od)
 head(pass_int_od)
 
@@ -39,3 +40,5 @@ pass_od <- pass_od %>%
 
 
 pass_od_wide <- pivot_wider(pass_od, names_from = "year", values_from = "total_pax")
+
+saveRDS(pass_od_wide, "data/passenger_od_wide.Rds")
