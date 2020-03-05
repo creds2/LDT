@@ -1,29 +1,21 @@
+library(tidyverse)
+library(sf)
+library(tmap)
+tmap_mode("view")
+
+# Load Passenger OD Data
 pass_od <- readRDS("data/passenger_od_wide.Rds")
 pass_od <- pass_od[!pass_od$airport2 %in% c("=","Unknown"),]
+pass_od$airport1 <- gsub(" International","",pass_od$airport1)
+pass_od$airport2 <- gsub(" International","",pass_od$airport2)
+pass_od$airport1 <- gsub(" Int'l","",pass_od$airport1)
+pass_od$airport2 <- gsub(" Int'l","",pass_od$airport2)
+pass_od$airport1 <- gsub(" Intl","",pass_od$airport1)
+pass_od$airport2 <- gsub(" Intl","",pass_od$airport2)
+pass_od$airport1 <- gsub(" Int","",pass_od$airport1)
+pass_od$airport2 <- gsub(" Int","",pass_od$airport2)
 
-tidy3 <- function(from,to){
-  pass_od$airport1[pass_od$airport1 %in% from] <-  to
-  pass_od$airport2[pass_od$airport2 %in% from] <-  to
-  assign('pass_od',pass_od,envir=.GlobalEnv)
-}
-
-tidy3("Durham Tees Valley", "Teesside Airport")
-tidy3("Wick John o Groats", "Wick")
-tidy3("City of Derry (Eglinton)", "Londonderry")
-tidy3("Manston (Kent Int)", "Kent")
-tidy3("Belfast City","Belfast City (George Best)")
-tidy3("Liverpool",	"Liverpool (John Lennon)")
-tidy3("Cardiff Wales","Cardiff")
-tidy3("Teesside Airport","Teesside")
-
-pass_od <- pass_od %>%
-  group_by(airport1,airport1_country,airport2,airport2_country) %>%
-  summarise_all(sum, na.rm = TRUE)
-
-
-#TODO: check for mismatched in uk airport names between sf onject and pass_od, seems to be some mixing of names in pass_od, so check over
-
-#pass_od <- pivot_wider(pass_od, names_from = "year", values_from = "total_pax", names_prefix = "pass_")
+# Load Flights OD
 
 flight_od <- readRDS("flow_final.Rds")
 pts <- lapply(flight_od$geometry, function(x){
@@ -53,265 +45,373 @@ flight_od <- flight_od[,c("airport1","airport1_country","airport2","airport2_cou
                           "2015","2016","2017","2018","fx","fy","tx","ty")]
 
 names(flight_od) <- c("airport1","airport1_country","airport2","airport2_country",
-             "flt_1991","flt_1993","flt_1994",
-             "flt_1995","flt_1996","flt_1997","flt_1998","flt_1999",
-             "flt_2000","flt_2001","flt_2002","flt_2003","flt_2004",
-             "flt_2005","flt_2006","flt_2007","flt_2008","flt_2009",
-             "flt_2010","flt_2011","flt_2012","flt_2013","flt_2014",
-             "flt_2015","flt_2016","flt_2017","flt_2018","fx","fy","tx","ty")
+                      "flt_1991","flt_1993","flt_1994",
+                      "flt_1995","flt_1996","flt_1997","flt_1998","flt_1999",
+                      "flt_2000","flt_2001","flt_2002","flt_2003","flt_2004",
+                      "flt_2005","flt_2006","flt_2007","flt_2008","flt_2009",
+                      "flt_2010","flt_2011","flt_2012","flt_2013","flt_2014",
+                      "flt_2015","flt_2016","flt_2017","flt_2018","fx","fy","tx","ty")
 
 flight_od$airport1 <- gsub(" Airport","",flight_od$airport1)
 flight_od$airport2 <- gsub(" Airport","",flight_od$airport2)
 flight_od$airport1 <- gsub(" International","",flight_od$airport1)
 flight_od$airport2 <- gsub(" International","",flight_od$airport2)
-pass_od$airport1 <- gsub(" International","",pass_od$airport1)
-pass_od$airport2 <- gsub(" International","",pass_od$airport2)
+flight_od$airport1 <- gsub(" Int'l","",flight_od$airport1)
+flight_od$airport2 <- gsub(" Int'l","",flight_od$airport2)
+flight_od$airport1 <- gsub(" Intl","",flight_od$airport1)
+flight_od$airport2 <- gsub(" Intl","",flight_od$airport2)
+flight_od$airport1 <- gsub(" Int","",flight_od$airport1)
+flight_od$airport2 <- gsub(" Int","",flight_od$airport2)
 
 flight_od$airport1 <- iconv(flight_od$airport1, from="UTF-8", to="ASCII//TRANSLIT")
 flight_od$airport2 <- iconv(flight_od$airport2, from="UTF-8", to="ASCII//TRANSLIT")
 
-tidy <- function(from,to){
-  flight_od$airport1[flight_od$airport1 %in% from] <-  to
-  flight_od$airport2[flight_od$airport2 %in% from] <-  to
-  assign('flight_od',flight_od,envir=.GlobalEnv)
-}
 
-tidy("Aberdeen Dyce", "Aberdeen")
-tidy("Birmingham International", "Birmingham")
-tidy("Cardiff International", "Cardiff")
-tidy("George Best Belfast City", "Belfast City (George Best)")
-tidy("Glasgow International", "Glasgow")
-tidy("London Gatwick", "Gatwick")
-tidy("London Heathrow", "Heathrow")
-tidy("London Luton", "Luton")
-tidy("London Stansted", "Stansted")
-tidy("Robin Hood Doncaster Sheffield", "Doncaster Sheffield")
-tidy("Liverpool John Lennon", "Liverpool (John Lennon)")
-
-
-tidy("A Coruna","a Coruna")
-tidy("Aarhus","Aarhus (Tirstrup)")
-#tidy("Abadan","Ibadan")
-tidy("Adnan Menderes","Izmir (Adnan Menderes)")
-#tidy("Agra","Agadir")
-tidy("Albert-Bray","Albert - Bray")
-tidy("Alghero-Fertilia","Alghero (Fertilia)")
-#tidy("Alta","Malta")
-#tidy("Angads","Oujda Angad")
-tidy("Anglesey","Anglesey (Valley)")
-tidy("Ascension","Ascension Island")
-tidy("Asturias","Asturias (Aviles)")
-#tidy("Atar","Mostar")
-tidy("Augsburg","Augsburg/Muelhausen")
-tidy("Austin Bergstrom","Austin (Bergstrom)")
-tidy("Baghdad","Baghdad Int")
-tidy("Bahias de Huatulco","Bahias De Huatulco")
-tidy("Banak","Bangkok (Don Muang)")
-tidy("Bateen","Abu Dhabi - Bateen")
-#tidy("Benina","Benin City")
-tidy("Berlin-Schonefeld","Berlin (Schonefeld)")
-tidy("Berlin-Tegel","Berlin (Tegel)")
-tidy("Borg El Arab","Alexandria (Borg El Arab)")
-tidy("Bradley","Windsor Locks Bradley Intl")
-tidy("Brescia","Brescia/Montichiari")
-tidy("Brno-Turany","Brno (Turany)")
-tidy("Cagliari Elmas","Cagliari (Elmas)")
-tidy("Castellon-Costa Azahar","Castellón Costa Azahar")
-tidy("Catania-Fontanarossa","Catania (Fontanarossa)")
-tidy("Charles de Gaulle","Paris (Charles De Gaulle)")
-tidy("Chicago Midway","Chicago (Midway)")
-tidy("Chicago O'Hare","Chicago (O'hare)")
-tidy("Chisinau","Chisinau (Kishinev)")
-tidy("Cluj-Napoca","Cluj Napoca")
-tidy("Cochstedt","Magdeburg Cochstedt")
-tidy("Cotswold","Cotswold Apt - Kemble")
-tidy("Deer Lake","Deer Lake (Newfoundland)")
-tidy("Dnipropetrovsk","Dnepropetrovsk")
-tidy("Domodedovo","Moscow (Domodedovo)")
-tidy("Don Mueang","Bangkok (Don Muang)")
-tidy("Eduardo Gomes","Manaus-Eduardo Gomes")
-#tidy("Eelde","Den Helder")
-tidy("Egilssta?ir","Egilsstadir")
-#tidy("Eilat","Elat")
-tidy("Enfidha - Hammamet","Enfidha - Hammamet Intl")
-#tidy("Eros","Roros")
-tidy("Es Senia","Oran Es Senia")
-tidy("Esenboga","Ankara (Esenboga)")
-tidy("Frank Pais","Holguin (Frank Pais)")
-tidy("Geilo Dagali","Geilo (Dagali)")
-#tidy("Gimpo","Seoul (Kimpo)")
-tidy("Gold Coast","Coolangatta (Gold Coast)")
-tidy("Gorna Oryahovitsa","Gorna Orechovitsa")
-#tidy("Ha'il","Hamilton (Canada)")
-tidy("Halim Perdanakusuma","Jakarta (Halim Perdana Kusuma)")
-tidy("Hamad","Doha Hamad")
-tidy("Hannover","Hanover")
-#tidy("Hato","Hanover")
-tidy("Hewanorra","St Lucia (Hewanorra)")
-tidy("Hong Kong","Hong Kong (Chek Lap Kok)")
-tidy("Horta","Azores Horta")
-tidy("Ibn Batouta","Tangiers (Ibn Batuta)")
-tidy("Imam Khomeini","Tehran Imam Khomeini")
-tidy("Imsik","Bodrum (Imsik)")
-tidy("Incheon","Seoul (Incheon)")
-tidy("Ingolstadt Manching","Ingolstadt-Manching")
-tidy("Ireland West Knock","Ireland West(Knock)")
-tidy("Ivano-Frankivsk","Ivano-Frankovsk")
-#tidy("Ivato","Ivalo")
-#tidy("Kaduna","Kaunas")
-#tidy("Kansai","Kansas City")
-tidy("Karlsruhe Baden-Baden","Karlsruhe/Baden Baden")
-#tidy("Kerry","Londonderry")
-tidy("Khanty Mansiysk","Khanty-Mansiysk")
-#tidy("Kharkiv","Kharkov Osnova Intl")
-tidy("Kiev Zhuliany","Kiev (Zhulyany)")
-tidy("Kisumu","Kisuma") #<new spleeing wrong??
-tidy("Kristiansand","Kristiansand (Kjevik)")
-tidy("Kristiansund (Kvernberget)","Kristiansund (Kuernberget)")
-tidy("Kuala Lumpur","Kuala Lumpur (Sepang)")
-tidy("La Guardia","New York (La Guardia)")
-tidy("La Palma","Las Palmas")
-tidy("Lajes","Azores Lajes Terceira Island")
-tidy("Lamezia Terme","Lametia-Terme")
-tidy("Leirin","Fagernes/Leirin")
-tidy("Lerwick / Tingwall","Lerwick (Tingwall)")
-tidy("Limnos","Lemnos")
-#tidy("Lista","Boa Vista (Rabil)")
-#tidy("London","Londonderry")
-#tidy("Lublin","Dublin")
-#tidy("Lviv","Liverpool (John Lennon)")
-tidy("Lyon-Bron","Lyon(Bron)")
-#tidy("Macau","Manaus-Eduardo Gomes")
-tidy("Malpensa","Milan (Malpensa)")
-#tidy("Manas","Monastir")
-#tidy("Maun","Stauning")
-tidy("Mersa Matruh","Mersa Matrouh")
-tidy("Milano Linate","Milan (Linate)")
-tidy("Mineralnyye Vody","Mineralnye Vody")
-#tidy("Modlin","Moline (Quad City)")
-tidy("Monchengladbach","Moenchengladbach")
-#tidy("Moss","Kinloss")
-tidy("Mukalla","Riyan Mukalla")
-tidy("Munster Osnabruck","Munster-Osnabruck")
-#tidy("Naha","Omaha")
-tidy("Narita","Tokyo (Narita)")
-tidy("Nashville","Nashville Metropolitan")
-tidy("Ndjili","Kinshasa Ndjili")
-tidy("Nottingham","Tollerton Nottingham")
-#tidy("Obock","Lubbock")
-#tidy("Osaka","Lusaka")
-tidy("Oslo","Oslo (Fornebu)")
-tidy("Pajala","Pajala Yllas")
-tidy("Palm Beach","West Palm Beach")
-tidy("Paris-Le Bourget","Paris (Le Bourget)")
-tidy("Perigueux-Bassillac","Perigeux/Bassillac")
-tidy("Perth","Perth (Uk)")
-tidy("Portland","Portland (Oregon)")
-tidy("Quad City","Moline (Quad City)")
-tidy("Rabil","Boa Vista (Rabil)")
-tidy("Rajiv Gandhi","Hyderabad ( Rajiv Ghandi )")
-tidy("Rickenbacker","Columbus Rickenbacker Afb")
-tidy("Roberts","Monrovia (Roberts)")
-tidy("Rochester","Rochester (Uk)")
-tidy("Sabha","Istanbul (Sabiha Gokcen)")
-tidy("Sabiha Gokcen","Istanbul (Sabiha Gokcen)")
-tidy("Salerno Costa d'Amalfi","Salerno Costa Amalfi")
-tidy("Samana El Catey","Samana (El Catey)")
-tidy("Samedan","Samedan/St Moritz")
-tidy("San Bernardino","San Bernardino (Norton Afb)")
-tidy("San Javier","Murcia San Javier")
-tidy("Sana'a","Sanaa")
-tidy("Sandefjord","Sandefjord(Torp)")
-tidy("Santa Maria","Azores Santa Maria")
-tidy("Santiago de Compostela","Santiago De Compostela")
-tidy("Santorini","Thira (Santorini)")
-tidy("Santos Dumont","Rio De Janeiro (Santos Dumont)")
-tidy("Sao Pedro","San Pedro (Cape Verde)")
-tidy("Sarasota Bradenton","Sarasota (Bradenton)")
-tidy("Sarmellek","Sarmellek/Balaton")
-tidy("Schwerin Parchim","Schwerin/Parchim")
-tidy("Seattle Tacoma","Seattle (Tacoma)")
-tidy("Sevilla","Seville")
-tidy("Sharm El Sheikh","Sharm El Sheikh (Ophira)")
-tidy("Sheremetyevo","Moscow (Sheremetyevo)")
-tidy("Siegerland","Siegerlands")
-tidy("Sochi","Adler / Sochi")
-tidy("Soekarno-Hatta","Jakarta (Soekarno-Hatta Intnl)")
-tidy("St Louis Lambert","St Louis (Lambert)")
-tidy("Stockholm-Arlanda","Stockholm (Arlanda)")
-tidy("Stockholm-Bromma","Stockholm (Bromma)")
-tidy("Stockholm Skavsta","Stockholm (Skavsta)")
-tidy("Sulaymaniyah","Sulaymaniyah Int")
-tidy("Suvarnabhumi","Bangkok Suvarnabhumi")
-tidy("Svalbard","Longyearbyen (Svalbard)")
-tidy("Tekirdag Corlu","Tekirdag (Corlu)")
-tidy("Tenerife Norte","Tenerife (Norte Los Rodeos)")
-tidy("Tokyo Haneda","Tokyo (Haneda)")
-tidy("Tolmachevo","Novosibirsk (Tolmachevo)")
-tidy("Toulouse-Blagnac","Toulouse (Blagnac)")
-tidy("Tromso,","Tromsoe")
-tidy("Trondheim Varnes","Trondheim (Vaernes)")
-tidy("Twente","Enschede (Twente)")
-tidy("U-Tapao","u-Tapao")
-#tidy("Victoria","Vitoria")
-tidy("Vnukovo","Moscow (Vnukovo)")
-tidy("Warsaw Chopin","Warsaw (Chopin)")
-tidy("Washington Dulles","Washington (Dulles)")
-tidy("Westerland Sylt","Westerland (Sylt)")
-tidy("Wevelgem","Kortrijk/Wevelgem")
-tidy("Yangon","Yangon/Rangoon")
-tidy("Yaounde Nsimalen","Yaounde (Nsimalen)")
-tidy("Zweibrucken","Zweibruken")
-
-
-airports_flights <- flight_od[,c("airport2","airport2_country","tx","ty")]
-airports_flights <- unique(airports_flights)
-airports_flights <- airports_flights[!airports_flights$airport2 %in% pass_od$airport2,]
-airports_flights <- st_as_sf(airports_flights, coords = c("tx","ty"), crs = 4326)
-
+# Load Airports
 airports <- read_sf("data/airports_pass.gpkg")
 airports$full <- NULL
 airports$airport <- tools::toTitleCase(airports$airport)
 airports$country <- tools::toTitleCase(airports$country)
-airports_extra <- data.frame(airport = "Coningsby", country = "United Kingdom", lon = -0.166111, lat = 53.093056, stringsAsFactors = FALSE)
+airports_extra <- data.frame(airport = c("Coningsby","Tollerton Nottingham", "Elstree","Colonsay","Cotswold Apt - Kemble",
+                                         "Gamston","Coll"), 
+                             country = c("United Kingdom","United Kingdom","United Kingdom","United Kingdom","United Kingdom",
+                                         "United Kingdom","United Kingdom"),
+                             lon = c(-0.166111,-1.081156,-0.327250,-6.2430556,-2.056944,-0.957807,-6.617778), 
+                             lat = c(53.093056,52.919126,51.655607,56.0575,51.668056, 53.277311,56.601944 ), 
+                             stringsAsFactors = FALSE)
 airports_extra <- st_as_sf(airports_extra, coords = c("lon","lat"), crs = 4326)
 names(airports_extra) <- names(airports)
 st_geometry(airports_extra) <- "geom"
 airports <- rbind(airports, airports_extra)
 
-tidy2 <- function(from,to){
+airports$airport <- gsub(" International","",airports$airport)
+airports$airport <- gsub(" Int'l","",airports$airport)
+airports$airport <- gsub(" Intl","",airports$airport)
+airports$airport <- gsub(" Int","",airports$airport)
+
+
+tidy_airports <- function(from,to){
+  flight_od$airport1[flight_od$airport1 %in% from] <-  to
+  flight_od$airport2[flight_od$airport2 %in% from] <-  to
+  pass_od$airport1[pass_od$airport1 %in% from] <-  to
+  pass_od$airport2[pass_od$airport2 %in% from] <-  to
   airports$airport[airports$airport %in% from] <-  to
+  assign('flight_od',flight_od,envir=.GlobalEnv)
+  assign('pass_od',pass_od,envir=.GlobalEnv)
   assign('airports',airports,envir=.GlobalEnv)
 }
 
-tidy2("Aberdeen International","Aberdeen")
-tidy2("Belfast International","Belfast")
-#tidy2("Teesside","Durham Tees Valley")
-tidy2("Exeter International","Exeter")
-tidy2("Kent International","Kent")              
-#tidy2("Liverpool (John Lennon)","Liverpool")
-#tidy2("Teesside","Teesside")
-tidy2("londonderry","City of Derry (Eglinton)")
-tidy2("Belfast City","Belfast City (George Best)")
-tidy2("Tollerton Nottingham","Nottingham East Midlands Int'l")
-#tidy2("","Manston (Kent Int)")
-#tidy2("Wick","Wick John o Groats")
-#tidy2("","Coningsby")
+tidy_countries <- function(from,to){
+  flight_od$airport1_country[flight_od$airport1_country %in% from] <-  to
+  flight_od$airport2_country[flight_od$airport2_country %in% from] <-  to
+  pass_od$airport1_country[pass_od$airport1_country %in% from] <-  to
+  pass_od$airport2_country[pass_od$airport2_country %in% from] <-  to
+  airports$country[airports$country %in% from] <- to
+  assign('flight_od',flight_od,envir=.GlobalEnv)
+  assign('pass_od',pass_od,envir=.GlobalEnv)
+  assign('airports',airports,envir=.GlobalEnv)
+}
 
+# Clean Values
+
+tidy_airports("Durham Tees Valley", "Teesside")
+tidy_airports("Wick John o Groats", "Wick")
+tidy_airports("City of Derry (Eglinton)", "Londonderry")
+tidy_airports("Manston (Kent)", "Kent")
+tidy_airports("Belfast City","Belfast City (George Best)")
+tidy_airports("Liverpool",	"Liverpool (John Lennon)")
+tidy_airports("Cardiff Wales","Cardiff")
+tidy_airports("Teesside Airport","Teesside")
+
+tidy_airports("Aberdeen Dyce", "Aberdeen")
+tidy_airports("Birmingham International", "Birmingham")
+tidy_airports("Cardiff International", "Cardiff")
+tidy_airports("George Best Belfast City", "Belfast City (George Best)")
+tidy_airports("Glasgow International", "Glasgow")
+tidy_airports("London Gatwick", "Gatwick")
+tidy_airports("London Heathrow", "Heathrow")
+tidy_airports("London Luton", "Luton")
+tidy_airports("London Stansted", "Stansted")
+tidy_airports("Robin Hood Doncaster Sheffield", "Doncaster Sheffield")
+tidy_airports("Liverpool John Lennon", "Liverpool (John Lennon)")
+tidy_airports("RAF Ascension Island", "Ascension Island")
+tidy_airports("Nottingham East Midlands", "East Midlands")
+
+tidy_airports("A Coruna","a Coruna")
+tidy_airports("Aarhus","Aarhus (Tirstrup)")
+tidy_airports("Adnan Menderes","Izmir (Adnan Menderes)")
+tidy_airports("Albert-Bray","Albert - Bray")
+tidy_airports("Alghero-Fertilia","Alghero (Fertilia)")
+tidy_airports("Anglesey","Anglesey (Valley)")
+tidy_airports("Ascension","Ascension Island")
+tidy_airports("Asturias","Asturias (Aviles)")
+tidy_airports("Augsburg","Augsburg/Muelhausen")
+tidy_airports("Austin Bergstrom","Austin (Bergstrom)")
+tidy_airports("Baghdad","Baghdad Int")
+tidy_airports("Bahias de Huatulco","Bahias De Huatulco")
+tidy_airports("Banak","Bangkok (Don Muang)")
+tidy_airports("Bateen","Abu Dhabi - Bateen")
+tidy_airports("Berlin-Schonefeld","Berlin (Schonefeld)")
+tidy_airports("Berlin-Tegel","Berlin (Tegel)")
+tidy_airports("Borg El Arab","Alexandria (Borg El Arab)")
+tidy_airports("Bradley","Windsor Locks Bradley Intl")
+tidy_airports("Brescia","Brescia/Montichiari")
+tidy_airports("Brno-Turany","Brno (Turany)")
+tidy_airports("Cagliari Elmas","Cagliari (Elmas)")
+tidy_airports("Castellon-Costa Azahar","Castellón Costa Azahar")
+tidy_airports("Catania-Fontanarossa","Catania (Fontanarossa)")
+tidy_airports("Charles de Gaulle","Paris (Charles De Gaulle)")
+tidy_airports("Chicago Midway","Chicago (Midway)")
+tidy_airports("Chicago O'Hare","Chicago (O'hare)")
+tidy_airports("Chisinau","Chisinau (Kishinev)")
+tidy_airports("Cluj-Napoca","Cluj Napoca")
+tidy_airports("Cochstedt","Magdeburg Cochstedt")
+tidy_airports("Cotswold","Cotswold Apt - Kemble")
+tidy_airports("Deer Lake","Deer Lake (Newfoundland)")
+tidy_airports("Dnipropetrovsk","Dnepropetrovsk")
+tidy_airports("Domodedovo","Moscow (Domodedovo)")
+tidy_airports("Don Mueang","Bangkok (Don Muang)")
+tidy_airports("Eduardo Gomes","Manaus-Eduardo Gomes")
+tidy_airports("Egilssta?ir","Egilsstadir")
+tidy_airports("Enfidha - Hammamet","Enfidha - Hammamet Intl")
+tidy_airports("Es Senia","Oran Es Senia")
+tidy_airports("Esenboga","Ankara (Esenboga)")
+tidy_airports("Frank Pais","Holguin (Frank Pais)")
+tidy_airports("Geilo Dagali","Geilo (Dagali)")
+tidy_airports("Gold Coast","Coolangatta (Gold Coast)")
+tidy_airports("Gorna Oryahovitsa","Gorna Orechovitsa")
+tidy_airports("Halim Perdanakusuma","Jakarta (Halim Perdana Kusuma)")
+tidy_airports("Hamad","Doha Hamad")
+tidy_airports("Hannover","Hanover")
+tidy_airports("Hewanorra","St Lucia (Hewanorra)")
+tidy_airports("Hong Kong","Hong Kong (Chek Lap Kok)")
+tidy_airports("Horta","Azores Horta")
+tidy_airports("Ibn Batouta","Tangiers (Ibn Batuta)")
+tidy_airports("Imam Khomeini","Tehran Imam Khomeini")
+tidy_airports("Imsik","Bodrum (Imsik)")
+tidy_airports("Incheon","Seoul (Incheon)")
+tidy_airports("Ingolstadt Manching","Ingolstadt-Manching")
+tidy_airports("Ireland West Knock","Ireland West(Knock)")
+tidy_airports("Ivano-Frankivsk","Ivano-Frankovsk")
+tidy_airports("Karlsruhe Baden-Baden","Karlsruhe/Baden Baden")
+tidy_airports("Khanty Mansiysk","Khanty-Mansiysk")
+tidy_airports("Kiev Zhuliany","Kiev (Zhulyany)")
+tidy_airports("Kisuma","Kisumu")
+tidy_airports("Kristiansand","Kristiansand (Kjevik)")
+tidy_airports("Kristiansund (Kvernberget)","Kristiansund (Kuernberget)")
+tidy_airports("Kuala Lumpur","Kuala Lumpur (Sepang)")
+tidy_airports("La Guardia","New York (La Guardia)")
+tidy_airports("La Palma","Las Palmas")
+tidy_airports("Lajes","Azores Lajes Terceira Island")
+tidy_airports("Lamezia Terme","Lametia-Terme")
+tidy_airports("Leirin","Fagernes/Leirin")
+tidy_airports("Lerwick / Tingwall","Lerwick (Tingwall)")
+tidy_airports("Limnos","Lemnos")
+tidy_airports("Lyon-Bron","Lyon(Bron)")
+tidy_airports("Malpensa","Milan (Malpensa)")
+tidy_airports("Mersa Matruh","Mersa Matrouh")
+tidy_airports("Milano Linate","Milan (Linate)")
+tidy_airports("Mineralnyye Vody","Mineralnye Vody")
+tidy_airports("Monchengladbach","Moenchengladbach")
+tidy_airports("Mukalla","Riyan Mukalla")
+tidy_airports("Munster Osnabruck","Munster-Osnabruck")
+tidy_airports("Narita","Tokyo (Narita)")
+tidy_airports("Nashville","Nashville Metropolitan")
+tidy_airports("Ndjili","Kinshasa Ndjili")
+tidy_airports("Nottingham","Tollerton Nottingham")
+tidy_airports("Oslo","Oslo (Fornebu)")
+tidy_airports("Pajala","Pajala Yllas")
+tidy_airports("Palm Beach","West Palm Beach")
+tidy_airports("Paris-Le Bourget","Paris (Le Bourget)")
+tidy_airports("Perigueux-Bassillac","Perigeux/Bassillac")
+tidy_airports("Perth","Perth (Uk)")
+tidy_airports("Portland","Portland (Oregon)")
+tidy_airports("Quad City","Moline (Quad City)")
+tidy_airports("Rabil","Boa Vista (Rabil)")
+tidy_airports("Rajiv Gandhi","Hyderabad ( Rajiv Ghandi )")
+tidy_airports("Rickenbacker","Columbus Rickenbacker Afb")
+tidy_airports("Roberts","Monrovia (Roberts)")
+tidy_airports("Rochester","Rochester (Uk)")
+tidy_airports("Sabha","Istanbul (Sabiha Gokcen)")
+tidy_airports("Sabiha Gokcen","Istanbul (Sabiha Gokcen)")
+tidy_airports("Salerno Costa d'Amalfi","Salerno Costa Amalfi")
+tidy_airports("Samana El Catey","Samana (El Catey)")
+tidy_airports("Samedan","Samedan/St Moritz")
+tidy_airports("San Bernardino","San Bernardino (Norton Afb)")
+tidy_airports("San Javier","Murcia San Javier")
+tidy_airports("Sana'a","Sanaa")
+tidy_airports("Sandefjord","Sandefjord(Torp)")
+tidy_airports("Santa Maria","Azores Santa Maria")
+tidy_airports("Santiago de Compostela","Santiago De Compostela")
+tidy_airports("Santorini","Thira (Santorini)")
+tidy_airports("Santos Dumont","Rio De Janeiro (Santos Dumont)")
+tidy_airports("Sao Pedro","San Pedro (Cape Verde)")
+tidy_airports("Sarasota Bradenton","Sarasota (Bradenton)")
+tidy_airports("Sarmellek","Sarmellek/Balaton")
+tidy_airports("Schwerin Parchim","Schwerin/Parchim")
+tidy_airports("Seattle Tacoma","Seattle (Tacoma)")
+tidy_airports("Sevilla","Seville")
+tidy_airports("Sharm El Sheikh","Sharm El Sheikh (Ophira)")
+tidy_airports("Sheremetyevo","Moscow (Sheremetyevo)")
+tidy_airports("Siegerland","Siegerlands")
+tidy_airports("Sochi","Adler / Sochi")
+tidy_airports("Soekarno-Hatta","Jakarta (Soekarno-Hatta Intnl)")
+tidy_airports("St Louis Lambert","St Louis (Lambert)")
+tidy_airports("Stockholm-Arlanda","Stockholm (Arlanda)")
+tidy_airports("Stockholm-Bromma","Stockholm (Bromma)")
+tidy_airports("Stockholm Skavsta","Stockholm (Skavsta)")
+tidy_airports("Sulaymaniyah","Sulaymaniyah Int")
+tidy_airports("Suvarnabhumi","Bangkok Suvarnabhumi")
+tidy_airports("Svalbard","Longyearbyen (Svalbard)")
+tidy_airports("Tekirdag Corlu","Tekirdag (Corlu)")
+tidy_airports("Tenerife Norte","Tenerife (Norte Los Rodeos)")
+tidy_airports("Tokyo Haneda","Tokyo (Haneda)")
+tidy_airports("Tolmachevo","Novosibirsk (Tolmachevo)")
+tidy_airports("Toulouse-Blagnac","Toulouse (Blagnac)")
+tidy_airports("Tromso,","Tromsoe")
+tidy_airports("Trondheim Varnes","Trondheim (Vaernes)")
+tidy_airports("Twente","Enschede (Twente)")
+tidy_airports("U-Tapao","u-Tapao")
+tidy_airports("Vnukovo","Moscow (Vnukovo)")
+tidy_airports("Warsaw Chopin","Warsaw (Chopin)")
+tidy_airports("Washington Dulles","Washington (Dulles)")
+tidy_airports("Westerland Sylt","Westerland (Sylt)")
+tidy_airports("Wevelgem","Kortrijk/Wevelgem")
+tidy_airports("Yangon","Yangon/Rangoon")
+tidy_airports("Yaounde Nsimalen","Yaounde (Nsimalen)")
+tidy_airports("Zweibrucken","Zweibruken")
+
+tidy_airports("Aberdeen International","Aberdeen")
+tidy_airports("Belfast International","Belfast")
+tidy_airports("Exeter International","Exeter")
+tidy_airports("Kent International","Kent")              
+tidy_airports("Belfast City","Belfast City (George Best)")
+tidy_airports("Rygge","Moss")
+tidy_airports("Evenes","Harstad/Narvik")
+tidy_airports("Singapore","Singapore Changi")
+tidy_airports("Frankfurt Main","Frankfurt am Main")
+tidy_airports("Adolfo Suarez Madrid-Barajas","Madrid")
+tidy_airports("Geneva Cointrin","Geneva")
+tidy_airports("Nice","Nice-Cote d'Azur")
+tidy_airports("George Bushercontinental Houston","Houston")
+tidy_airports("Murtala Muhammed","Lagos")	
+tidy_airports("Humberto Delgado (Lisbon Portela)","Lisbon")	
+
+
+
+tidy_countries("Isle of Curacao Neth.antilles","Netherlands Antilles")
+tidy_countries("Burkino Faso","Burkina Faso")
+
+
+tidy_countries("United States","United States of America")
+tidy_countries("Ireland","Irish Republic")
+tidy_countries("Bosnia and Herzegovina","Bosnia-Herzegovina")
+tidy_countries("South Korea","Republic of Korea")
+tidy_countries("Serbia","Republic of Serbia")
+tidy_countries("Slovakia","Slovak Republic")
+tidy_countries("Cape Verde","Cape Verde Islands")
+tidy_countries("Moldova","Republic of Moldova")
+tidy_countries("Montenegro","Republic of Montenegro")
+tidy_countries("Saint Lucia","St Lucia")
+tidy_countries("Maldives","Maldive Islands")
+tidy_countries("South Africa","Republic of South Africa")
+tidy_countries("Cote d'Ivoire","Ivory Coast")
+tidy_countries("Yemen","Republic of Yemen")
+tidy_countries("Congo (Brazzaville)","Congo")
+tidy_countries("Djibouti","Djibouti Republic")
+tidy_countries("Congo (Kinshasa)","Democratic Republic of Congo")
+tidy_countries("French Polynesia","Tahiti")
+tidy_countries("Virgin Islands","Virgin Islands (U.s.a)")
+tidy_countries("Burma","Myanmar")
+tidy_countries("North Korea","Democratic People Rep.of Korea")
+
+tidy_countries("Evenes","Norway")
+tidy_countries("Rygge","Norway")
+
+flight_od$airport2_country[flight_od$airport2 == "Ascension Island"] <- "Ascension Island"
+flight_od$airport2_country[flight_od$airport2 == "Pristina"] <- "Kosovo"
+pass_od$airport1_country[pass_od$airport1 == "Jersey"] <- "Jersey"
+pass_od$airport2_country[pass_od$airport2 == "Jersey"] <- "Jersey"
+airports$country[airports$airport == "Jersey"] <- "Jersey"
+
+stop()
 
 summary(pass_od$airport1_country %in% airports$country)
 summary(pass_od$airport2_country %in% airports$country)
 summary(pass_od$airport1 %in% airports$airport)
+unique(pass_od$airport1[!pass_od$airport1 %in% airports$airport])
 summary(pass_od$airport2 %in% airports$airport)
 unique(pass_od$airport2[!pass_od$airport2 %in% airports$airport])
+summary(pass_od$airport2_country %in% flight_od$airport2_country)
+unique(pass_od$airport2_country[!pass_od$airport2_country %in% flight_od$airport2_country])
 
-stop()
+summary(pass_od$airport1 %in% flight_od$airport1)
+summary(pass_od$airport2 %in% flight_od$airport2)
+unique(pass_od$airport2[!pass_od$airport2 %in% flight_od$airport2])
 
 # Match locations
+airports_flights <- flight_od[,c("airport2","airport2_country","tx","ty")]
+airports_flights <- unique(airports_flights)
+airports_flights <- airports_flights[!airports_flights$airport2 %in% pass_od$airport2,]
+airports_flights <- st_as_sf(airports_flights, coords = c("tx","ty"), crs = 4326)
+
 mtch <- match(airports_flights$geometry, airports$geom)
 airports_flights$airport_match <- airports$airport[mtch]
 airports_flights$country_match <- airports$country[mtch]
 
+airports_join <- airports_flights[,c("airport2","airport2_country","airport_match","country_match" )]
+airports_join <- st_drop_geometry(airports_join)
+names(airports_join) <- c("airport_old","country_old","airport_match","country_match" )
+
+flight_od <- left_join(flight_od, airports_join, by = c("airport2" = "airport_old",  "airport2_country" = "country_old"))
+flight_od$country_match_check <- flight_od$airport2_country == flight_od$country_match
+flight_od$pass_check <- !flight_od$airport2_country %in% pass_od$airport2
+flight_od$airport2 <- ifelse(!is.na(flight_od$airport_match) & 
+                               flight_od$country_match_check & 
+                               flight_od$pass_check,
+                             flight_od$airport_match,flight_od$airport2)
+
+summary(flight_od$airport2 %in% pass_od$airport2)
+summary(flight_od$airport1 %in% pass_od$airport1)
+
+flight_od <- flight_od[,c("airport1","airport1_country","airport2","airport2_country","flt_1991",
+                          "flt_1993","flt_1994","flt_1995","flt_1996","flt_1997",
+                          "flt_1998","flt_1999","flt_2000","flt_2001","flt_2002",
+                          "flt_2003","flt_2004","flt_2005","flt_2006","flt_2007",
+                          "flt_2008","flt_2009","flt_2010","flt_2011","flt_2012",
+                          "flt_2013","flt_2014","flt_2015","flt_2016","flt_2017",
+                          "flt_2018")]
+
+summary(duplicated(pass_od[,c("airport1","airport1_country","airport2","airport2_country")]))
+summary(duplicated(flight_od[,c("airport1","airport1_country","airport2","airport2_country")]))
+
+stop()
+
+pass_od2 <- pass_od %>%
+  group_by(airport1,airport1_country,airport2,airport2_country) %>%
+  summarise_all(sum, na.rm = TRUE)
+
+flight_od2 <- flight_od %>%
+  group_by(airport1,airport1_country,airport2,airport2_country) %>%
+  summarise_all(sum, na.rm = TRUE)
+
+
+
+
+stop()
+foo <- pass_od[,c("airport1","airport1_country","airport2","airport2_country")]
+bar <- pass_od[duplicated(foo),]
+summary(duplicated(pass_od[,c("airport1","airport1_country","airport2","airport2_country")]))
+summary(duplicated(foo))
+
+all_od <- left_join(pass_od2, flight_od2, by= c("airport1","airport1_country","airport2","airport2_country") )
+
+# check for odd results
+all_missing_passengers <- all_od[is.na(all_od$`2018`), ]
+all_missing_flights <- all_od[is.na(all_od$flt_2018), ]
+all_missing_flights <- all_missing_flights[all_missing_flights$`2018` > 1000, ]
+
+#flight_od$
 
 dists <- st_distance(airports_flights, airports)
 dists <- matrix(as.numeric(dists), ncol = ncol(dists))
@@ -343,7 +443,7 @@ foo = foo[order(foo)]
 # })
 # bar = unlist(bar)
 # comp <- data.frame(foo = foo, bar = bar)
-#comp$tidy <- paste0('tidy("',comp$foo,'","',comp$bar,'")')
+#comp$tidy <- paste0('tidy_airports("',comp$foo,'","',comp$bar,'")')
 #comp <- comp[!is.na(comp$bar),]
 #comp <- comp[,3, drop = FALSE]
 
@@ -364,7 +464,7 @@ airports_close <- airports_flights[airports_flights$airport2 %in% rownames(dists
 qtm(airports_close)
 
 
-all_od <- left_join(pass_od, flight_od, by= c("airport1","airport1_country","airport2","airport2_country") )
+
 
 
 
