@@ -453,7 +453,6 @@ summary(duplicated(foo))
 all_od <- left_join(pass_od2, flight_od2, by= c("airport1","airport1_country","airport2","airport2_country") )
 
 # check for odd results
-all_missing_passengers <- all_od[is.na(all_od$`2018`), ]
 all_missing_flights <- all_od[is.na(all_od$flt_2018), ]
 all_missing_flights <- all_missing_flights %>%
   group_by(airport2, airport2_country) %>%
@@ -465,6 +464,9 @@ all_missing_flights <- all_missing_flights %>%
 
 stop()
 #flight_od$
+
+all_missing_passengers <- left_join(flight_od2, pass_od2, by= c("airport1","airport1_country","airport2","airport2_country") )
+all_missing_passengers <- all_missing_passengers[is.na(all_missing_passengers$`2018`), ]
 
 dists <- st_distance(airports_flights, airports)
 dists <- matrix(as.numeric(dists), ncol = ncol(dists))
