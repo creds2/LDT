@@ -331,6 +331,7 @@ tidy_airports("Castellón Costa Azahar","Castellon Costa Azahar")
 tidy_airports("Queen Beatrix","Aruba")
 tidy_airports("Nimes","Nimes-Arles-Camargue")
 tidy_airports("Brive-La-Gaillarde","Brive Souillac")
+tidy_airports("Perth (Australia)","Perth")
 
 
 tidy_countries("Isle of Curacao Neth.antilles","Netherlands Antilles")
@@ -363,7 +364,6 @@ tidy_countries("Longyear","Norway")
 tidy_countries("Fornebu Airport","Norway")
 tidy_countries("Torp","Norway")
 tidy_countries("Point Salines","Grenada")
-tidy_countries("Perth (Australia)","Perth")
 
 flight_od$airport2_country[flight_od$airport2 == "Ascension Island"] <- "Ascension Island"
 flight_od$airport2_country[flight_od$airport2 == "Pristina"] <- "Kosovo"

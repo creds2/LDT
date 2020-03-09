@@ -1,5 +1,3 @@
-# Step 1 Import the files for passenger number
-
 # list zips
 
 path <- "../LDT/data/CAA_airport"
@@ -224,8 +222,6 @@ transit <- dplyr::bind_rows(res_transit)
 int_od <- dplyr::bind_rows(res_int_od)
 dom_od <- dplyr::bind_rows(res_dom_od[lengths(res_dom_od) >0])
 
-saveRDS(transit, "data/CAA_transit.Rds")
-saveRDS(int_od, "data/CAA_int_od.Rds")
-saveRDS(dom_od, "data/CAA_dom_od.Rds")
-
-
+saveRDS(transit, "data/clean/passenger_transit.Rds")
+saveRDS(int_od, "data/clean/passenger_int_od.Rds")
+saveRDS(dom_od, "data/clean/passenger_dom_od.Rds")
