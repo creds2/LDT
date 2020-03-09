@@ -8,12 +8,25 @@ library(sf)
 library(tmap)
 tmap_mode("view")
 
-files <- list.files("data/CAA_punctuality/", full.names = TRUE)
+files <- list.files("data/CAA_punctuality", full.names = TRUE)
 data_raw <- list()
 
 for(i in 1:length(files)){
   flights <- read.csv(files[i],
                       stringsAsFactors = FALSE)
+  if(i %in% c(1,2)){
+    flights_ly <- flights[,c("reporting_airport","origin_destination_country",
+                             "origin_destination","airline_name",
+                             "arrival_departure","scheduled_charter",
+                             "previous_year_month_flights_matched")]
+    
+    names(flights_ly) <- c("reporting_airport","origin_destination_country",
+                             "origin_destination","airline_name",
+                             "arrival_departure","scheduled_charter",
+                             "total_flights")
+    flights_ly <- flights_ly[!(flights_ly$origin_destination_country == "UNITED KINGDOM" & 
+                                 flights_ly$arrival_departure == "D"),]
+  }
   flights$total_flights <- flights$number_flights_matched + flights$actual_flights_unmatched
   flights <- flights[,c("reporting_airport","origin_destination_country",
                           "origin_destination","airline_name",
@@ -28,6 +41,10 @@ for(i in 1:length(files)){
   year <- year[[1]][3]
   year <- as.integer(substr(year,1,4))
   flights$year <- year
+  if(i %in% c(1,2)){
+    flights_ly$year <- year - 1
+    flights <- rbind(flights, flights_ly)
+  }
   data_raw[[i]] <- flights 
 }
 
@@ -50,6 +67,7 @@ airports <- airports[,c("AirportID","Name","City","Country","IATA","ICAO","Latit
 flow$origin_destination_country[flow$origin_destination_country == "USA"] <- "UNITED STATES"
 
 # Match CAA to OpenFlights Names
+flow$origin_destination[flow$origin_destination == "CASTELL\xd3N COSTA AZAHAR"] <- "CASTELLON COSTA AZAHAR"
 flow$fromAirport <- paste0(tools::toTitleCase(tolower(flow$reporting_airport))," Airport, United Kingdom")
 flow$toAirport <- paste0(tools::toTitleCase(tolower(flow$origin_destination))," Airport, ",tools::toTitleCase(tolower(flow$origin_destination_country)))
 
@@ -258,7 +276,7 @@ flow <- left_join(flow, ap_join)
 flow <- flow[!is.na(flow$toAirportOF),]
 
 #Combine flows for same airport but differnt names
-flow <- flow[,c("fromAirportOF","toAirportOF","1991",as.character(1993:2018))]
+flow <- flow[,c("fromAirportOF","toAirportOF",as.character(1990:2018))]
 flow <- flow %>%
   group_by(fromAirportOF, toAirportOF) %>%
   summarise_all(sum, na.rm = TRUE)

@@ -15,6 +15,12 @@ pass_od$airport2 <- gsub(" Intl","",pass_od$airport2)
 pass_od$airport1 <- gsub(" Int","",pass_od$airport1)
 pass_od$airport2 <- gsub(" Int","",pass_od$airport2)
 
+pass_od$rowsum <- rowSums(pass_od[,c(as.character(1990:2018))], na.rm = TRUE)
+pass_od <- pass_od[pass_od$rowsum > 0,]
+pass_od$rowsum <- NULL
+
+pass_od <- pass_od[pass_od$airport2 != "Oil Rigs",]
+
 # Load Flights OD
 
 flight_od <- readRDS("flow_final.Rds")
@@ -37,7 +43,7 @@ flight_od$airport2 <- sapply(flight_od_to, `[[`, 1)
 flight_od$airport2_country <- sapply(flight_od_to, `[[`, 2)
 
 flight_od <- flight_od[,c("airport1","airport1_country","airport2","airport2_country",
-                          "1991","1993","1994",
+                          "1990","1991","1992","1993","1994",
                           "1995","1996","1997","1998","1999",
                           "2000","2001","2002","2003","2004",
                           "2005","2006","2007","2008","2009",
@@ -45,7 +51,7 @@ flight_od <- flight_od[,c("airport1","airport1_country","airport2","airport2_cou
                           "2015","2016","2017","2018","fx","fy","tx","ty")]
 
 names(flight_od) <- c("airport1","airport1_country","airport2","airport2_country",
-                      "flt_1991","flt_1993","flt_1994",
+                      "flt_1990","flt_1991","flt_1992","flt_1993","flt_1994",
                       "flt_1995","flt_1996","flt_1997","flt_1998","flt_1999",
                       "flt_2000","flt_2001","flt_2002","flt_2003","flt_2004",
                       "flt_2005","flt_2006","flt_2007","flt_2008","flt_2009",
@@ -88,6 +94,7 @@ airports$airport <- gsub(" International","",airports$airport)
 airports$airport <- gsub(" Int'l","",airports$airport)
 airports$airport <- gsub(" Intl","",airports$airport)
 airports$airport <- gsub(" Int","",airports$airport)
+airports$airport <- iconv(airports$airport, from="UTF-8", to="ASCII//TRANSLIT")
 
 
 tidy_airports <- function(from,to){
@@ -224,7 +231,7 @@ tidy_airports("Pajala","Pajala Yllas")
 tidy_airports("Palm Beach","West Palm Beach")
 tidy_airports("Paris-Le Bourget","Paris (Le Bourget)")
 tidy_airports("Perigueux-Bassillac","Perigeux/Bassillac")
-tidy_airports("Perth","Perth (Uk)")
+tidy_airports("Perth (Uk)","Perth")
 tidy_airports("Portland","Portland (Oregon)")
 tidy_airports("Quad City","Moline (Quad City)")
 tidy_airports("Rabil","Boa Vista (Rabil)")
@@ -318,6 +325,12 @@ tidy_airports("Mahon","Menorca")
 tidy_airports("Montpellier","Montpellier-Mediterranee")
 tidy_airports("Sir Seewoosagur Ramgoolam","Mauritius")
 tidy_airports("Reus","Reus Air Base")
+tidy_airports("Casablanca","Casablanca Mohamed v")
+tidy_airports("Islamabad","Benazir Bhutto")
+tidy_airports("Castellón Costa Azahar","Castellon Costa Azahar")
+tidy_airports("Queen Beatrix","Aruba")
+tidy_airports("Nimes","Nimes-Arles-Camargue")
+tidy_airports("Brive-La-Gaillarde","Brive Souillac")
 
 
 tidy_countries("Isle of Curacao Neth.antilles","Netherlands Antilles")
@@ -346,6 +359,11 @@ tidy_countries("North Korea","Democratic People Rep.of Korea")
 
 tidy_countries("Evenes","Norway")
 tidy_countries("Rygge","Norway")
+tidy_countries("Longyear","Norway")
+tidy_countries("Fornebu Airport","Norway")
+tidy_countries("Torp","Norway")
+tidy_countries("Point Salines","Grenada")
+tidy_countries("Perth (Australia)","Perth")
 
 flight_od$airport2_country[flight_od$airport2 == "Ascension Island"] <- "Ascension Island"
 flight_od$airport2_country[flight_od$airport2 == "Pristina"] <- "Kosovo"
@@ -358,10 +376,29 @@ airports$country[airports$airport == "Guernsey"] <- "Guernsey"
 pass_od$airport1_country[pass_od$airport1 == "Isle of Man"] <- "Isle of Man"
 pass_od$airport2_country[pass_od$airport2 == "Isle of Man"] <- "Isle of Man"
 airports$country[airports$airport == "Isle of Man"] <- "Isle of Man"
-pass_od$airport1_country[pass_od$airport1 == "EuroAirport Basel-Mulhouse-Freiburg"] <- "Switzerland"
-pass_od$airport2_country[pass_od$airport2 == "EuroAirport Basel-Mulhouse-Freiburg"] <- "Switzerland"
-airports$country[airports$airport == "EuroAirport Basel-Mulhouse-Freiburg"] <- "Switzerland"
+pass_od$airport1_country[pass_od$airport1 == "EuroAirport Basel-Mulhouse-Freiburg"] <- "France"
+pass_od$airport2_country[pass_od$airport2 == "EuroAirport Basel-Mulhouse-Freiburg"] <- "France"
+airports$country[airports$airport == "EuroAirport Basel-Mulhouse-Freiburg"] <- "France"
 
+pass_od$airport1_country[pass_od$airport1 == "Asmara"] <- "Eritrea"
+pass_od$airport2_country[pass_od$airport2 == "Asmara"] <- "Eritrea"
+airports$country[airports$airport == "Asmara"] <- "Eritrea"
+
+pass_od$airport1_country[pass_od$airport1 == "Bangkok (Don Muang)"] <- "Thailand"
+pass_od$airport2_country[pass_od$airport2 == "Bangkok (Don Muang)"] <- "Thailand"
+flight_od$airport1_country[flight_od$airport1 == "Bangkok (Don Muang)"] <- "Thailand"
+flight_od$airport2_country[flight_od$airport2 == "Bangkok (Don Muang)"] <- "Thailand"
+airports$country[airports$airport == "Bangkok (Don Muang)"] <- "Thailand"
+
+pass_od$airport1_country[pass_od$airport1 == "Aruba"] <- "Aruba"
+pass_od$airport2_country[pass_od$airport2 == "Aruba"] <- "Aruba"
+airports$country[airports$airport == "Aruba"] <- "Aruba"
+
+pass_od$airport1_country[pass_od$airport1 == "Aruba"] <- "Aruba"
+pass_od$airport2_country[pass_od$airport2 == "Aruba"] <- "Aruba"
+airports$country[airports$airport == "Aruba"] <- "Aruba"
+
+flight_od$airport2_country[flight_od$airport2 == "Istanbul (Sabiha Gokcen)"] <- "Turkey"
 
 summary(pass_od$airport1_country %in% airports$country)
 summary(pass_od$airport2_country %in% airports$country)
@@ -402,13 +439,93 @@ flight_od$airport2 <- ifelse(!is.na(flight_od$airport_match) &
 summary(flight_od$airport2 %in% pass_od$airport2)
 summary(flight_od$airport1 %in% pass_od$airport1)
 
-flight_od <- flight_od[,c("airport1","airport1_country","airport2","airport2_country","flt_1991",
+flight_od <- flight_od[,c("airport1","airport1_country","airport2","airport2_country",
+                          "flt_1990","flt_1991","flt_1992",
                           "flt_1993","flt_1994","flt_1995","flt_1996","flt_1997",
                           "flt_1998","flt_1999","flt_2000","flt_2001","flt_2002",
                           "flt_2003","flt_2004","flt_2005","flt_2006","flt_2007",
                           "flt_2008","flt_2009","flt_2010","flt_2011","flt_2012",
                           "flt_2013","flt_2014","flt_2015","flt_2016","flt_2017",
                           "flt_2018","tx","ty")]
+
+# Flight has an AB BA problem in domestic data
+flight_od$key <- stplanr::od_id_szudzik(flight_od$airport1, flight_od$airport2)
+
+flight_od <- flight_od %>%
+  group_by(key) %>%
+  summarise(airport1 = airport1[1],
+            airport1_country = airport1_country[1],
+            airport2 = airport2[1],
+            airport2_country = airport2_country[1],
+            flt_1990 = max(flt_1990, na.rm = TRUE),
+            flt_1991 = max(flt_1991, na.rm = TRUE),
+            flt_1992 = max(flt_1992, na.rm = TRUE),
+            flt_1993 = max(flt_1993, na.rm = TRUE),
+            flt_1994 = max(flt_1994, na.rm = TRUE),
+            flt_1995 = max(flt_1995, na.rm = TRUE),
+            flt_1996 = max(flt_1996, na.rm = TRUE),
+            flt_1997 = max(flt_1997, na.rm = TRUE),
+            flt_1998 = max(flt_1998, na.rm = TRUE),
+            flt_1999 = max(flt_1999, na.rm = TRUE),
+            flt_2000 = max(flt_2000, na.rm = TRUE),
+            flt_2001 = max(flt_2001, na.rm = TRUE),
+            flt_2002 = max(flt_2002, na.rm = TRUE),
+            flt_2003 = max(flt_2003, na.rm = TRUE),
+            flt_2004 = max(flt_2004, na.rm = TRUE),
+            flt_2005 = max(flt_2005, na.rm = TRUE),
+            flt_2006 = max(flt_2006, na.rm = TRUE),
+            flt_2007 = max(flt_2007, na.rm = TRUE),
+            flt_2008 = max(flt_2008, na.rm = TRUE),
+            flt_2009 = max(flt_2009, na.rm = TRUE),
+            flt_2010 = max(flt_2010, na.rm = TRUE),
+            flt_2011 = max(flt_2011, na.rm = TRUE),
+            flt_2012 = max(flt_2012, na.rm = TRUE),
+            flt_2013 = max(flt_2013, na.rm = TRUE),
+            flt_2014 = max(flt_2014, na.rm = TRUE),
+            flt_2015 = max(flt_2015, na.rm = TRUE),
+            flt_2016 = max(flt_2016, na.rm = TRUE),
+            flt_2017 = max(flt_2017, na.rm = TRUE),
+            flt_2018 = max(flt_2018, na.rm = TRUE),
+            tx = tx[1],
+            ty = ty[1])
+
+flight_od$key <- NULL
+
+# Sort order of doemstic flights
+
+for(i in 1:nrow(pass_od)){
+  if(pass_od$airport1_country[i] %in% c("United Kingdom","Jersey","Isle of Man","Guernsey") & 
+     pass_od$airport2_country[i] %in% c("United Kingdom","Jersey","Isle of Man","Guernsey")){
+    ap1 <- pass_od$airport1[i]
+    ap2 <- pass_od$airport2[i]
+    apc1 <- pass_od$airport1_country[i]
+    apc2 <- pass_od$airport2_country[i]
+    
+    if(ap2 < ap1){
+      pass_od$airport1_country[i] <- apc2
+      pass_od$airport2_country[i] <- apc1
+      pass_od$airport1[i] <- ap2
+      pass_od$airport2[i] <- ap1
+    }
+  }
+}
+
+for(i in 1:nrow(flight_od)){
+  if(flight_od$airport1_country[i] %in% c("United Kingdom","Jersey","Isle of Man","Guernsey") & 
+     flight_od$airport2_country[i] %in% c("United Kingdom","Jersey","Isle of Man","Guernsey")){
+    ap1 <- flight_od$airport1[i]
+    ap2 <- flight_od$airport2[i]
+    apc1 <- flight_od$airport1_country[i]
+    apc2 <- flight_od$airport2_country[i]
+    
+    if(ap2 < ap1){
+      flight_od$airport1_country[i] <- apc2
+      flight_od$airport2_country[i] <- apc1
+      flight_od$airport1[i] <- ap2
+      flight_od$airport2[i] <- ap1
+    }
+  }
+}
 
 # Match by nearby
 airports_flights <- flight_od[,c("airport2","airport2_country","tx","ty")]
@@ -454,6 +571,18 @@ all_od <- left_join(pass_od2, flight_od2, by= c("airport1","airport1_country","a
 
 # check for odd results
 all_missing_flights <- all_od[is.na(all_od$flt_2018), ]
+foo <- as.data.frame(table(all_od$airport1[is.na(all_od$flt_2018)]))
+bar <- as.data.frame(table(all_od$airport1[!is.na(all_od$flt_2018)]))
+table(flight_od$airport1)
+
+all_missing_flights <- all_missing_flights[all_missing_flights$airport1 %in% 
+                                             c("Gatwick", "Heathrow","Aberdeen",
+                                               "Belfast City (George Best)", "Belfast",
+                                               "Birmingham","Bournemouth","Cardiff",
+                                               "Doncaster Sheffield","East Midlands","Edinburgh",
+                                               "Exeter","Gatwick","Glasgow","Heathrow","Luton",
+                                               "Liverpool (John Lennon)","London City","Manchester",
+                                               "Newcastle","Stansted"), ]
 all_missing_flights <- all_missing_flights %>%
   group_by(airport2, airport2_country) %>%
   summarise(total = sum(`2018`),
@@ -467,6 +596,13 @@ stop()
 
 all_missing_passengers <- left_join(flight_od2, pass_od2, by= c("airport1","airport1_country","airport2","airport2_country") )
 all_missing_passengers <- all_missing_passengers[is.na(all_missing_passengers$`2018`), ]
+
+# check for airports with more than one country
+
+foo <- rbind(flight_od[,c("airport2","airport2_country")], pass_od[,c("airport2","airport2_country")])
+foo <- unique(foo)
+bar <- foo$airport2[duplicated(foo$airport2)]
+foo <- foo[foo$airport2 %in% bar,]
 
 dists <- st_distance(airports_flights, airports)
 dists <- matrix(as.numeric(dists), ncol = ncol(dists))
