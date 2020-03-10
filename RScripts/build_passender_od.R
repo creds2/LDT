@@ -25,6 +25,8 @@ pass_od$airport1_country <- tools::toTitleCase(pass_od$airport1_country)
 pass_od$airport2_country <- tools::toTitleCase(pass_od$airport2_country)
 
 
+
+
 # foo <- pass_od[,c("year","airport1","airport1_country","airport2","airport2_country","airport2")]
 # foo <- pass_od[duplicated(foo),]
 # bar <- pass_od[pass_od$year == foo$year[1] & pass_od$airport1 == foo$airport1[1] & pass_od$airport2 == foo$airport2[1], ]

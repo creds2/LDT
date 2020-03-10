@@ -394,10 +394,6 @@ pass_od$airport1_country[pass_od$airport1 == "Aruba"] <- "Aruba"
 pass_od$airport2_country[pass_od$airport2 == "Aruba"] <- "Aruba"
 airports$country[airports$airport == "Aruba"] <- "Aruba"
 
-pass_od$airport1_country[pass_od$airport1 == "Aruba"] <- "Aruba"
-pass_od$airport2_country[pass_od$airport2 == "Aruba"] <- "Aruba"
-airports$country[airports$airport == "Aruba"] <- "Aruba"
-
 flight_od$airport2_country[flight_od$airport2 == "Istanbul (Sabiha Gokcen)"] <- "Turkey"
 
 summary(pass_od$airport1_country %in% airports$country)

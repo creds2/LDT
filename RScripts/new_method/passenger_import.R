@@ -216,8 +216,6 @@ for(i in seq(length(zips) + 1, length(zips) + 4)){
   
 }
 
-
-
 transit <- dplyr::bind_rows(res_transit)
 int_od <- dplyr::bind_rows(res_int_od)
 dom_od <- dplyr::bind_rows(res_dom_od[lengths(res_dom_od) >0])
