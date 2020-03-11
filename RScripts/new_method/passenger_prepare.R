@@ -13,6 +13,7 @@ pass_int_od <- pass_int_od[!is.na(pass_int_od$total_pax),]
 pass_int_od$airport1[pass_int_od$airport1 == "OTHER ROUTES"] <- "Other Airport"
 pass_int_od$airport2[pass_int_od$airport2_country == "OIL RIGS"] <- "Oil Rigs"
 pass_int_od$airport2[is.na(pass_int_od$airport2)] <- "Other Airport"
+pass_int_od$airport2[pass_int_od$airport2 == "="] <- "Other Airport"
 
 pass_dom_od$airport1_country <- "United Kingdom"
 pass_dom_od$airport2_country <- "United Kingdom"

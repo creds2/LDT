@@ -1,3 +1,5 @@
+library(sf)
+library(dplyr)
 
 pass_od <- readRDS("data/clean/passenger_od_wide.Rds")
 flight_od <- readRDS("data/clean/flights_od_prepped.Rds")
@@ -263,6 +265,8 @@ tidy_airports("Brive-La-Gaillarde","Brive Souillac")
 tidy_airports("Perth (Australia)","Perth")
 tidy_airports("Hong Kong (Chep Lap Kok)","Hong Kong (Chek Lap Kok)")
 tidy_airports("Ireland West Airport Knock","Ireland West(Knock)")
+tidy_airports("Camp Springs","Camp Springs (Andrews Afb)")
+
 
 
 tidy_countries("Isle of Curacao Neth.antilles","Netherlands Antilles")
@@ -388,6 +392,7 @@ for(i in 1:nrow(flight_od)){
     }
   }
 }
+rm(ap1,ap2,apc1,apc2,i)
 
 # CLean duplicated flows now we know the idetified airports
 
@@ -426,5 +431,5 @@ all_missing_passengers <- left_join(flight_od2, pass_od2 , by= c("airport1","air
 all_missing_passengers <- all_missing_passengers[is.na(all_missing_passengers$`2018`), ]
 all_missing_passengers <- all_missing_passengers %>%
   group_by(airport2, airport2_country) %>%
-  summarise(total = sum(`2018`),
+  summarise(total = sum(flt_2018),
             count = n())
