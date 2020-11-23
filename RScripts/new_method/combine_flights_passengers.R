@@ -129,7 +129,7 @@ tidy_airports("Imam Khomeini","Tehran Imam Khomeini")
 tidy_airports("Imsik","Bodrum (Imsik)")
 tidy_airports("Incheon","Seoul (Incheon)")
 tidy_airports("Ingolstadt Manching","Ingolstadt-Manching")
-tidy_airports("Ireland West Knock","Ireland West(Knock)")
+tidy_airports(c("Ireland West Airport Knock","Ireland West Knock","Ireland West Knock "),"Ireland West(Knock)")
 tidy_airports("Ivano-Frankivsk","Ivano-Frankovsk")
 tidy_airports("Karlsruhe Baden-Baden","Karlsruhe/Baden Baden")
 tidy_airports("Khanty Mansiysk","Khanty-Mansiysk")
@@ -264,7 +264,6 @@ tidy_airports("Nimes","Nimes-Arles-Camargue")
 tidy_airports("Brive-La-Gaillarde","Brive Souillac")
 tidy_airports("Perth (Australia)","Perth")
 tidy_airports("Hong Kong (Chep Lap Kok)","Hong Kong (Chek Lap Kok)")
-tidy_airports(c("Ireland West Airport Knock","Ireland West Knock"),"Ireland West(Knock)")
 tidy_airports("Camp Springs","Camp Springs (Andrews Afb)")
 tidy_airports("Enfidha - Hammamet Intl","Enfidha")
 tidy_airports("Warsaw","Warsaw (Chopin)")
@@ -293,7 +292,8 @@ tidy_airports("Kerry Coun2001" ,"Kerry County")
 tidy_airports("Catania" ,"Catania (Fontanarossa)")
 tidy_airports("Yangon/Rangoon" ,"Rangoon")
 tidy_airports("Windhoek (Eros)" ,"Windhoek")
-
+tidy_airports("Vagar Faroe Islands" ,"Vagar")
+tidy_airports("=" ,"Other Airport")
 	
 
 tidy_countries("Isle of Curacao Neth.antilles","Netherlands Antilles")
@@ -391,7 +391,7 @@ airports$country[airports$airport == "Pristina"] <- "Kosovo"
 
 flight_od$airport2_country[flight_od$airport2 == "Istanbul (Sabiha Gokcen)"] <- "Turkey"
 
-# Sort order of doemstic flights
+# Sort order of domestic flights
 
 for(i in 1:nrow(pass_od)){
   if(pass_od$airport1_country[i] %in% c("United Kingdom","Jersey","Isle of Man","Guernsey") & 
@@ -434,7 +434,7 @@ pass_od$airport2 <- trimws(pass_od$airport2)
 flight_od$airport1 <- trimws(flight_od$airport1)
 flight_od$airport2 <- trimws(flight_od$airport2)
 
-# CLean duplicated flows now we know the idetified airports
+# CLean duplicated flows now we know the identified airports
 
 pass_od2 <- pass_od %>%
   group_by(airport1,airport1_country,airport2,airport2_country) %>%
@@ -447,64 +447,6 @@ flight_od2 <- flight_od %>%
 pass_od2 <- pass_od2[rowSums(pass_od2[,as.character(1990:2018)]) != 0,]
 flight_od2 <- flight_od2[rowSums(flight_od2[,paste0("flt_",1990:2018)]) != 0,]
 
-all_od <- full_join(pass_od2, flight_od2, by= c("airport1","airport1_country","airport2","airport2_country") )
-saveRDS(all_od,"data/clean/pass_flighs_od.Rds")
-
-
-all_missing <- all_od[is.na(all_od$`2018`) | is.na(all_od$flt_2018),]
-all_missing <- all_missing[with(all_missing, order(airport2_country, airport2)),]
-all_missing <- all_missing[all_missing$airport1 != "Unknown",]
-all_missing <- all_missing[all_missing$airport2 != "Unknown",]
-all_missing <- all_missing[all_missing$airport1 %in% 
-                                             c("Gatwick", "Heathrow","Aberdeen",
-                                               "Belfast City (George Best)", "Belfast",
-                                               "Birmingham","Bournemouth","Cardiff",
-                                               "Doncaster Sheffield","East Midlands","Edinburgh",
-                                               "Exeter","Gatwick","Glasgow","Heathrow","Luton",
-                                               "Liverpool (John Lennon)","London City","Manchester",
-                                               "Newcastle","Stansted"), ]
-all_missing_top <- all_missing
-all_missing_top$rowsums <- rowSums(all_missing_top[5:ncol(all_missing_top)], na.rm = TRUE)
-all_missing_top$missing_flights <- is.na(all_missing_top$flt_2018)
-all_missing_top$missing_fpassengers <- is.na(all_missing_top$`2018`)
-all_missing_top <- all_missing_top[,c(1:4,seq(ncol(all_missing_top)-2,ncol(all_missing_top)))]
-all_missing_top <- all_missing_top[all_missing_top$rowsums > 1000,]
-
-# Missing airports
-ap_flights <- unique(flight_od2$airport2)
-ap_pass <- unique(pass_od2$airport2)
-ap_pass2 <- ap_pass[!ap_pass %in% ap_flights]
-ap_flights2 <- ap_flights[!ap_flights %in% ap_pass]
-
-ap_all <- all_od[all_od$airport2 %in% c(ap_pass2, ap_flights2),]
-ap_all <- ap_all[,c("airport2","airport2_country","2018","flt_2018")]
-ap_all <- ap_all[ap_all$airport2_country != "Oil Rigs",]
-ap_all <- unique(ap_all)
-
-# check for odd results
-all_missing_flights <- all_od[is.na(all_od$flt_2018), ]
-foo <- as.data.frame(table(all_od$airport1[is.na(all_od$flt_2018)]))
-bar <- as.data.frame(table(all_od$airport1[!is.na(all_od$flt_2018)]))
-table(flight_od$airport1)
-
-all_missing_flights <- all_missing_flights[all_missing_flights$airport1 %in% 
-                                             c("Gatwick", "Heathrow","Aberdeen",
-                                               "Belfast City (George Best)", "Belfast",
-                                               "Birmingham","Bournemouth","Cardiff",
-                                               "Doncaster Sheffield","East Midlands","Edinburgh",
-                                               "Exeter","Gatwick","Glasgow","Heathrow","Luton",
-                                               "Liverpool (John Lennon)","London City","Manchester",
-                                               "Newcastle","Stansted"), ]
-
-
-all_missing_flights <- all_missing_flights %>%
-  group_by(airport2, airport2_country) %>%
-  summarise(total = sum(`2018`),
-            count = n())
-
-all_missing_passengers <- left_join(flight_od2, pass_od2 , by= c("airport1","airport1_country","airport2","airport2_country") )
-all_missing_passengers <- all_missing_passengers[is.na(all_missing_passengers$`2018`), ]
-all_missing_passengers <- all_missing_passengers %>%
-  group_by(airport2, airport2_country) %>%
-  summarise(total = sum(flt_2018),
-            count = n())
+saveRDS(pass_od2, "data/clean/passenger_od_first_clean.Rds")
+saveRDS(flight_od2, "data/clean/flighs_od_first_clean.Rds")
+write_sf(airports, "data/clean/airports_clean_first_pass.gpkg")

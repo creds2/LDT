@@ -1,0 +1,387 @@
+---
+title: "Untitled"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## GitHub Documents
+
+This is an R Markdown format used for publishing markdown documents to GitHub. When you click the **Knit** button all R code chunks are run and a markdown file (.md) suitable for publishing to GitHub is generated.
+
+## Including Code
+
+Headline Results
+
+```{r load, echo=FALSE}
+library(sf)
+library(tmap)
+library(dplyr)
+library(countrycode)
+library(tidyr)
+
+pass_od <- read_sf("../../data/clean/od_flights_pass.gpkg")
+airports <- read_sf("../../data/clean/airports_clean_second_pass.gpkg")
+
+pass_od <- pass_od[,c("airport1","airport1_country", "airport2","airport2_country","X2018","pass_km_2018")]
+pass_od <- st_drop_geometry(pass_od)
+pass_inter <- pass_od[pass_od$airport2_country != "United Kingdom", ]
+pass_inter <- pass_inter[!is.na(pass_inter$X2018),]
+pass_inter <- pass_inter[pass_inter$X2018 > 0,]
+# Get Flight Distance
+
+pass_inter <- group_by(pass_inter, airport2, airport2_country) %>%
+  summarise(pass_2018 = sum(`X2018`),
+            pass_km_2018 = sum(`pass_km_2018`))
+
+pass_inter <- pass_inter[pass_inter$pass_2018 > 0,]
+pass_inter <- pass_inter[pass_inter$airport2 != "Unknown",]
+summary(pass_inter$airport2 %in% airports$airport)
+
+pass_inter <- left_join(airports, pass_inter, by = c("airport" = "airport2", "country" = "airport2_country"))
+pass_inter <- pass_inter[!is.na(pass_inter$pass_2018),]
+pass_inter <- pass_inter[pass_inter$pass_2018 > 0,]
+
+
+```
+
+## International Passengers
+
+```{r int_pass, echo=FALSE}
+
+data(World)
+World <- st_transform(World, 4326)
+m1 <- tm_shape(pass_inter) +
+  tm_bubbles(size = "pass_2018", 
+             title.size = "Passengers 2018",
+             col = "blue") +
+  tm_shape(World) +
+  tm_borders(col = "black") +
+  tm_layout(legend.position = c("left","bottom"))
+tmap_save(m1, filename = "international_passengers.png")
+
+m2 <- tm_shape(pass_inter) +
+  tm_bubbles(size = "pass_km_2018", 
+             title.size = "Passenger Kilometres 2018",
+             col = "red") +
+  tm_shape(World) +
+  tm_borders(col = "black") +
+  tm_layout(legend.position = c("left","bottom"))
+tmap_save(m2, filename = "international_passengers_km.png")
+```
+
+
+## International Passengers By Country/Region
+
+```{r int_pass_pie, echo=FALSE}
+
+pass_region <- st_drop_geometry(pass_inter)
+pass_region <- pass_region %>%
+  group_by(country) %>%
+  summarise(pass_2018 = sum(pass_2018),
+            pass_km_2018 = sum(pass_km_2018))
+
+pass_region$continent <- countrycode(sourcevar = pass_region$country,
+                            origin = "country.name",
+                            destination = "continent")
+pass_region$continent[pass_region$country == "Irish Republic"] <- "Europe"
+pass_region$continent[pass_region$country == "Kosovo"] <- "Europe"
+pass_region$continent[pass_region$country == "Oil Rigs"] <- "Europe"
+
+top10 <- top_n(pass_region, 10, pass_2018)
+country_keep <- top10$country
+top10 <- top_n(pass_region, 10, pass_km_2018)
+country_keep <- unique(c(country_keep, top10$country))
+
+pass_region1 <- pass_region[pass_region$country %in% country_keep,]
+pass_region2 <- pass_region[!pass_region$country %in% country_keep,]
+
+pass_region2 <- pass_region2 %>%
+  group_by(continent) %>%
+  summarise(pass_2018 = sum(pass_2018),
+            pass_km_2018 = sum(pass_km_2018))
+
+pass_region1$area <- pass_region1$country
+pass_region2$area <- paste0(pass_region2$continent)
+pass_region1 <- pass_region1[,c("area","pass_2018","pass_km_2018")]
+pass_region2 <- pass_region2[,c("area","pass_2018","pass_km_2018")]
+pass_region <- rbind(pass_region1, pass_region2)
+
+pass_dom <- pass_od[pass_od$airport2_country == "United Kingdom", ]
+pass_dom <- pass_dom[!is.na(pass_dom$X2018),]
+pass_dom <- data.frame(area = "UK Domestic", 
+                       pass_2018 = sum(pass_dom$X2018), 
+                       pass_km_2018 = sum(pass_dom$pass_km_2018))
+
+pass_region <- rbind(pass_region, pass_dom)
+
+pass_region <- pivot_longer(pass_region, cols = c("pass_2018","pass_km_2018"), names_to = "var", values_to = "count")
+pass_region$area[pass_region$area == "United States of America"] <- "USA"
+pass_region$area[pass_region$area == "United Arab Emirates"] <- "UAE"
+pass_region$area[pass_region$area == "Irish Republic"] <- "Ireland"
+pass_region$area[pass_region$area == "Europe"] <- "Europe Other"
+pass_region$area[pass_region$area == "Asia"] <- "Asia Other"
+pass_region$area[pass_region$area == "Americas"] <- "Americas Other"
+
+pass_region$area <- factor(pass_region$area, 
+                           levels = c("Spain","Italy","Germany","France","Ireland",
+                                     "Netherlands","Portugal","Poland","Greece","Turkey",
+                                     "Europe Other",
+                                     "USA","Canada","Americas Other",
+                                     "UAE","India","Hong Kong","Singapore",
+                                     "Asia Other",
+                                     "Oceania",
+                                     "Africa",
+                                     "UK Domestic"))
+
+
+ggplot(pass_region, aes(x=var, y=count, fill = area)) +
+  geom_col(position = "fill", colour="black") +
+  coord_polar("y", start=0) +
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.title.y=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y=element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(), 
+        axis.line = element_blank()) +
+  scale_fill_manual(values=c("#a50026","#d73027","#f46d43","#fdae61","#fee090",
+                             "#ffffbf","#e0f3f8","#abd9e9","#74add1","#4575b4",
+                             "#313695",
+                             "#2ca25f","#99d8c9","#e5f5f9",
+                             "#810f7c","#8856a7","#8c96c6","#9ebcda",
+                             "#bfd3e6",
+                             "#e6f5c9",
+                             "#f4cae4",
+                             "#4d4d4d")) +
+  labs(fill = "Country or Region") +
+  ggsave("passengers_and_km_pie.png")
+
+
+
+```
+
+## European Flights vs Rail
+
+```{r int_pass, echo=FALSE}
+
+pass_europe <- pass_inter
+pass_europe$continent <- countrycode(sourcevar = pass_europe$country,
+                            origin = "country.name",
+                            destination = "continent")
+pass_europe$continent[pass_europe$country == "Irish Republic"] <- "Europe"
+pass_europe$continent[pass_europe$country == "Kosovo"] <- "Europe"
+pass_europe$continent[pass_europe$country == "Oil Rigs"] <- "Europe"
+pass_europe <- pass_europe[pass_europe$continent == "Europe",]
+
+rail <- read_sf("../../data/europe-rail-highspeed.gpkg")
+rail$maxspeed <- as.numeric(rail$maxspeed)
+rail$maxspeed[rail$maxspeed > 400] <- NA
+rail <- rail[!is.na(rail$maxspeed),]
+rail <- rail[rail$maxspeed > 100,]
+
+dir.create("tmp")
+unzip("../../data/Europe Bounds/ref-countries-2020-20m.geojson.zip", exdir = "tmp")
+bounds <- read_sf("tmp/CNTR_BN_20M_2020_4326.geojson")
+bounds <- bounds[,c("EFTA_FLAG","EU_FLAG")]
+bounds_eu <- bounds[bounds$EFTA_FLAG == "T" |
+                  bounds$EU_FLAG == "T",]
+bounds <- bounds[st_buffer(bounds_eu, 10),]
+unlink("tmp", recursive = TRUE)
+
+
+
+m3 <- tm_shape(rail) +
+  tm_lines(col = "maxspeed", 
+           lwd = 2,
+           title.col = "Line speed (kph)") +
+  tm_shape(pass_europe) +
+  tm_bubbles(size = "pass_2018", 
+             title.size = "UK passengers (2018)",
+             col = "blue") +
+  tm_shape(bounds) +
+  tm_lines(col = "black") +
+  tm_layout(legend.position = c("left","top"),
+            legend.bg.color = "white")
+tmap_save(m3, filename = "international_passengers_europe.png")
+
+
+
+
+```
+
+
+## Spanish Islands
+
+```{r int_pass, echo=FALSE}
+
+pass_spain <- pass_europe[pass_europe$country == "Spain",] 
+balearic_islands <- c("Ibiza","Palma De Mallorca","Menorca")
+canary_islands <- c("Arrecife","Fuerteventura","Las Palmas","Tenerife (Surreina Sofia)","Tenerife (Norte Los Rodeos)","Santa Cruz De La Palma")
+
+pass_spain$balearic_islands <- pass_spain$airport %in% balearic_islands
+pass_spain$canary_islands <- pass_spain$airport %in% canary_islands
+
+sum(pass_spain$pass_2018[pass_spain$balearic_islands]) / sum(pass_spain$pass_2018)
+sum(pass_spain$pass_2018[pass_spain$canary_islands]) / sum(pass_spain$pass_2018)
+
+sum(pass_spain$pass_km_2018[pass_spain$balearic_islands]) / sum(pass_spain$pass_km_2018)
+sum(pass_spain$pass_km_2018[pass_spain$canary_islands]) / sum(pass_spain$pass_km_2018)
+
+sum(pass_spain$pass_km_2018[!pass_spain$balearic_islands & !pass_spain$canary_islands]) / sum(pass_inter$pass_km_2018[pass_inter$country == "Italy"])
+
+```
+
+
+## Main Rail Routes
+
+```{r int_pass, echo=FALSE}
+
+main_rail <- read_sf("../../data/main_rail.gpkg")
+main_rail$length_km <- as.numeric(st_length(main_rail)) / 1000
+main_rail$speed_kph <- main_rail$length_km / (main_rail$time_min / 60)
+main_rail$proposed[is.na(main_rail$proposed)] <- "FASLE"
+main_rail$proposed[main_rail$proposed %in% c("FLASE","FASLE")]  <- "FASLE"
+rail_buff <- st_buffer(st_transform(main_rail[main_rail$proposed == "FALSE",], 3035), units::as_units(50, "kilometres"))
+rail_buff <- st_union(rail_buff)
+rail_buff <- st_transform(rail_buff, 4326)
+
+m4 <- tm_shape(main_rail[main_rail$proposed == "FALSE",]) +
+  tm_lines(col = "speed_kph", 
+           lwd = 2,
+           title.col = "Average speed (kph)") +
+  tm_shape(pass_europe) +
+  tm_bubbles(size = "pass_2018", 
+             title.size = "UK passengers (2018)",
+             col = "blue") +
+  tm_shape(bounds) +
+  tm_lines(col = "black") +
+  tm_shape(rail_buff) +
+  tm_borders(col = "red") +
+  tm_layout(legend.position = c("left","top"),
+            legend.bg.color = "white") 
+tmap_save(m4, filename = "international_passengers_europe_main_rail.png")
+
+# In the study area
+in_study <- st_intersects(pass_europe, rail_buff)
+in_study <- lengths(in_study) > 0
+pass_europe$in_study <- in_study
+
+pass_europe_summary <- pass_europe %>%
+  st_drop_geometry() %>%
+  group_by(country, in_study) %>%
+  summarise(pass_2018 = sum(pass_2018),
+            pass_km_2018 = sum(pass_km_2018))
+
+pass_dom <- pass_od[pass_od$airport2_country == "United Kingdom", ]
+pass_dom <- pass_dom[!is.na(pass_dom$X2018),]
+
+pass_dom <- group_by(pass_dom, airport2, airport2_country) %>%
+  summarise(pass_2018 = sum(`X2018`),
+            pass_km_2018 = sum(`pass_km_2018`))
+
+pass_dom <- pass_dom[pass_inter$pass_2018 > 0,]
+pass_inter <- pass_inter[pass_inter$airport2 != "Unknown",]
+summary(pass_inter$airport2 %in% airports$airport)
+
+pass_inter <- left_join(airports, pass_inter, by = c("airport" = "airport2", "country" = "airport2_country"))
+
+
+
+in_study <- st_intersects(pass_dom, rail_buff)
+in_study <- lengths(in_study) > 0
+pass_dom$in_study <- in_study
+
+
+pass_dom_summary <- pass_dom %>%
+  st_drop_geometry() %>%
+  group_by(country, in_study) %>%
+  summarise(pass_2018 = sum(pass_2018),
+            pass_km_2018 = sum(pass_km_2018))
+
+
+pass_europe_summary <- pivot_wider(pass_europe_summary, values_from = c("pass_2018","pass_km_2018"), names_from = "in_study")
+pass_europe_summary$pass_2018_FALSE <- pass_europe_summary$pass_2018_FALSE / 1e6
+
+```
+
+
+## UK based OD
+
+```{r int_pass, echo=FALSE}
+pass_od <- read_sf("../../data/clean/od_flights_pass.gpkg")
+pass_od <- pass_od[,c("airport1","airport1_country", "airport2","airport2_country","X2018","pass_km_2018")]
+pass_od <- pass_od[!is.na(pass_od$X2018),]
+pass_od <- pass_od[pass_od$X2018 > 0,]
+
+pass_od_summary <- pass_od %>%
+  st_drop_geometry() %>%
+  left_join(pass_europe[,c("airport","in_study")], by = c("airport2" = "airport"))
+  group_by(airport1, airport1_country, airport2_country, in_study)
+  
+
+pass_od_europe <- pass_od[pass_od$airport2 %in% pass_europe$airport, ]
+
+data(World)
+World <- st_transform(World, 4326)
+
+m5 <-  tm_shape(pass_od[pass_od$X2018 > 100000,]) +
+  tm_lines(col = "X2018", 
+           lwd = "X2018",
+           title.col = "Passengers (2018)",
+           legend.lwd.show = FALSE,
+           scale = 3,
+           style = "jenks",
+           palette = "-viridis") +
+  tm_shape(World) +
+  tm_borders(col = "black") +
+  tm_layout(legend.position = c("right","top"),
+            legend.bg.color = "white") 
+tmap_save(m5, filename = "od_map.png")
+
+# In the study area
+in_study <- st_intersects(pass_europe, rail_buff)
+in_study <- lengths(in_study) > 0
+pass_europe$in_study <- in_study
+
+pass_europe_summary <- pass_europe %>%
+  st_drop_geometry() %>%
+  group_by(country, in_study) %>%
+  summarise(pass_2018 = sum(pass_2018),
+            pass_km_2018 = sum(pass_km_2018))
+
+pass_dom <- pass_od[pass_od$airport2_country == "United Kingdom", ]
+pass_dom <- pass_dom[!is.na(pass_dom$X2018),]
+
+pass_dom <- group_by(pass_dom, airport2, airport2_country) %>%
+  summarise(pass_2018 = sum(`X2018`),
+            pass_km_2018 = sum(`pass_km_2018`))
+
+pass_dom <- pass_dom[pass_inter$pass_2018 > 0,]
+pass_inter <- pass_inter[pass_inter$airport2 != "Unknown",]
+summary(pass_inter$airport2 %in% airports$airport)
+
+pass_inter <- left_join(airports, pass_inter, by = c("airport" = "airport2", "country" = "airport2_country"))
+
+
+
+in_study <- st_intersects(pass_dom, rail_buff)
+in_study <- lengths(in_study) > 0
+pass_dom$in_study <- in_study
+
+
+pass_dom_summary <- pass_dom %>%
+  st_drop_geometry() %>%
+  group_by(country, in_study) %>%
+  summarise(pass_2018 = sum(pass_2018),
+            pass_km_2018 = sum(pass_km_2018))
+
+
+pass_europe_summary <- pivot_wider(pass_europe_summary, values_from = c("pass_2018","pass_km_2018"), names_from = "in_study")
+pass_europe_summary$pass_2018_FALSE <- pass_europe_summary$pass_2018_FALSE / 1e6
+
+```
