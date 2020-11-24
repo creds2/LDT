@@ -135,7 +135,10 @@ pass_region$area <- factor(pass_region$area,
                                      "Oceania",
                                      "Africa",
                                      "UK Domestic"))
+```
 
+
+```{r int_pass_pie_plot, echo=FALSE}
 
 ggplot(pass_region, aes(x=var, y=count, fill = area)) +
   geom_col(position = "fill", colour="black") +
@@ -178,11 +181,7 @@ pass_europe$continent[pass_europe$country == "Kosovo"] <- "Europe"
 pass_europe$continent[pass_europe$country == "Oil Rigs"] <- "Europe"
 pass_europe <- pass_europe[pass_europe$continent == "Europe",]
 
-rail <- read_sf("../../data/europe-rail-highspeed.gpkg")
-rail$maxspeed <- as.numeric(rail$maxspeed)
-rail$maxspeed[rail$maxspeed > 400] <- NA
-rail <- rail[!is.na(rail$maxspeed),]
-rail <- rail[rail$maxspeed > 100,]
+
 
 dir.create("tmp")
 unzip("../../data/Europe Bounds/ref-countries-2020-20m.geojson.zip", exdir = "tmp")
@@ -192,8 +191,14 @@ bounds_eu <- bounds[bounds$EFTA_FLAG == "T" |
                   bounds$EU_FLAG == "T",]
 bounds <- bounds[st_buffer(bounds_eu, 10),]
 unlink("tmp", recursive = TRUE)
+```
 
-
+```{r int_pass_plot, echo=FALSE}
+rail <- read_sf("../../data/europe-rail-highspeed.gpkg")
+rail$maxspeed <- as.numeric(rail$maxspeed)
+rail$maxspeed[rail$maxspeed > 400] <- NA
+rail <- rail[!is.na(rail$maxspeed),]
+rail <- rail[rail$maxspeed > 100,]
 
 m3 <- tm_shape(rail) +
   tm_lines(col = "maxspeed", 
@@ -263,7 +268,8 @@ m4 <- tm_shape(main_rail[main_rail$proposed == "FALSE",]) +
   tm_shape(rail_buff) +
   tm_borders(col = "red") +
   tm_layout(legend.position = c("left","top"),
-            legend.bg.color = "white") 
+            legend.bg.color = "white",
+            legend.stack = "horizontal") 
 tmap_save(m4, filename = "international_passengers_europe_main_rail.png")
 
 # In the study area
@@ -312,7 +318,7 @@ pass_dom <- group_by(pass_dom, airport2, airport2_country) %>%
   summarise(pass_2018 = sum(`X2018`),
             pass_km_2018 = sum(`pass_km_2018`))
 
-pass_dom <- pass_dom[pass_inter$pass_2018 > 0,]
+pass_dom <- pass_dom[pass_dom$pass_2018 > 0,]
 pass_inter <- pass_inter[pass_inter$airport2 != "Unknown",]
 summary(pass_inter$airport2 %in% airports$airport)
 
