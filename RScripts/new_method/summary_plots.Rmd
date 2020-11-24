@@ -267,15 +267,43 @@ m4 <- tm_shape(main_rail[main_rail$proposed == "FALSE",]) +
 tmap_save(m4, filename = "international_passengers_europe_main_rail.png")
 
 # In the study area
-in_study <- st_intersects(pass_europe, rail_buff)
+in_study <- st_intersects(airports, rail_buff)
 in_study <- lengths(in_study) > 0
-pass_europe$in_study <- in_study
+airports$in_study <- in_study
 
-pass_europe_summary <- pass_europe %>%
-  st_drop_geometry() %>%
-  group_by(country, in_study) %>%
-  summarise(pass_2018 = sum(pass_2018),
+airports_instudy <- st_drop_geometry(airports)
+names(airports_instudy) <- c("airport", "country", "in_study_1")
+
+pass_od <- left_join(pass_od, airports_instudy, by = c("airport1" = "airport", "airport1_country" = "country"))
+
+names(airports_instudy) <- c("airport", "country", "in_study_2")
+
+pass_od <- left_join(pass_od, airports_instudy, by = c("airport2" = "airport", "airport2_country" = "country"))
+pass_od$in_study_all <- pass_od$in_study_1 & pass_od$in_study_2
+
+pass_study_summary <- pass_od %>%
+  filter(!is.na(X2018)) %>%
+  filter(X2018 > 0) %>%
+  group_by(airport2_country, in_study_all) %>%
+  summarise(pass_2018 = sum(X2018),
             pass_km_2018 = sum(pass_km_2018))
+
+pass_study_summary$continent <- countrycode(sourcevar = pass_study_summary$airport2_country,
+                            origin = "country.name",
+                            destination = "continent")
+pass_study_summary$continent[pass_study_summary$airport2_country == "Irish Republic"] <- "Europe"
+pass_study_summary$continent[pass_study_summary$airport2_country == "Kosovo"] <- "Europe"
+
+pass_study_summary <- pass_study_summary[pass_study_summary$continent == "Europe",]
+
+pass_study_summary <- pivot_wider(pass_study_summary, values_from = c("pass_2018","pass_km_2018"), names_from = "in_study_all")
+write.csv(pass_study_summary, "study_area_summary.csv")
+
+# pass_europe_summary <- pass_europe %>%
+#   st_drop_geometry() %>%
+#   group_by(country, in_study) %>%
+#   summarise(pass_2018 = sum(pass_2018),
+#             pass_km_2018 = sum(pass_km_2018))
 
 pass_dom <- pass_od[pass_od$airport2_country == "United Kingdom", ]
 pass_dom <- pass_dom[!is.na(pass_dom$X2018),]
