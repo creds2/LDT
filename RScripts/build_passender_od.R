@@ -3,8 +3,8 @@ library(sf)
 library(tidyr)
 
 airports <- read_sf("data/airports_pass.gpkg")
-pass_int_od <- readRDS("data/CAA_int_od_clean.Rds")
-pass_dom_od <- readRDS("data/CAA_dom_od_clean.Rds")
+pass_int_od <- readRDS("data/CAA_int_od_clean_v2.Rds")
+pass_dom_od <- readRDS("data/CAA_dom_od_clean_v2.Rds")
 
 
 head(pass_dom_od)
@@ -37,10 +37,10 @@ pass_od <- pass_od[,c("year","airport1","airport1_country","airport2","airport2_
 # come from two airports that seem to be the same location
 
 pass_od <- pass_od %>%
-  group_by(year,airport1,airport1_country,airport2,airport2_country,airport2) %>%
+  group_by(year,airport1,airport1_country,airport2,airport2_country) %>%
   summarise(total_pax = sum(total_pax))
 
 
 pass_od_wide <- pivot_wider(pass_od, names_from = "year", values_from = "total_pax")
 
-saveRDS(pass_od_wide, "data/passenger_od_wide.Rds")
+saveRDS(pass_od_wide, "data/passenger_od_wide_v2.Rds")

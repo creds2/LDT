@@ -2,19 +2,20 @@
 library(sf)
 library(dplyr)
 
-pass_od <- readRDS("data/clean/passenger_od_first_clean.Rds")
-flight_od <- readRDS("data/clean/flighs_od_first_clean.Rds")
-airports <- read_sf("data/clean/airports_clean_first_pass.gpkg")
+pass_od <- readRDS("data/clean/passenger_od_first_clean_v2.Rds")
+flight_od <- readRDS("data/clean/flighs_od_first_clean_v2.Rds")
+airports <- read_sf("data/clean/airports_clean_first_pass_v2.gpkg")
 airports <- airports[airports$airport != "Vary (Chalons Sur Marne)",]
 
-airports_extra <- data.frame(airport = c("Tabarka","St Maarten","Sydney Canada","Lanseria","Izmir (Cumaovasi)"),
-                             country = c("Tunisia","St Maarten","Canada","Republic of South Africa","Turkey"),
+airports_extra <- data.frame(airport = c("Tabarka","St Maarten","Sydney Canada","Lanseria","Izmir (Cumaovasi)","Islamabad"),
+                             country = c("Tunisia","St Maarten","Canada","Republic of South Africa","Turkey","Pakistan"),
                              geometry = st_sfc(list(
                                st_point(c(8.876944, 36.98)),
                                st_point(c(-63.109444, 18.040833)),
                                st_point(c(-60.048056, 46.161389)),
                                st_point(c(27.926111, -25.938611)),
-                               st_point(c(27.33114, 37.95034))
+                               st_point(c(27.33114, 37.95034)),
+                               st_point(c(72.82565, 33.549083))
                              )))
 names(airports_extra) <- names(airports)
 
@@ -29,7 +30,7 @@ airports$geom[airports$airport == "Seoul Afb"] <- st_point(c(127.113889, 37.4458
 airports$geom[airports$airport == "Seoul (Kimpo)"] <- st_point(c(126.790556, 37.558056))
 airports$geom[airports$airport == "Tollerton Nottingham"] <- st_point(c(-1.080855, 52.91872))
 airports$geom[airports$airport == "Vagar"] <- st_point(c(-7.27546, 62.06333))
-airports$geom[airports$airport == "Benazir Bhutto"] <- st_point(c(72.83501, 33.55693))
+airports$geom[airports$airport == "Benazir Bhutto"] <- st_point(c(73.099167, 33.616389))
 airports$geom[airports$airport == "Hong Kong"] <- st_point(c(113.9185, 22.30805))
 airports$geom[airports$airport == "Camp Springs (Andrews Afb)"] <- st_point(c(-76.88363, 38.79652))
 airports$geom[airports$airport == "Oil Rigs"] <- st_point(c(0.953009, 58.238252))
@@ -127,6 +128,37 @@ tidy_airports("Bursa/Yenisehir","Bursa Yenisehir")
 tidy_airports("Corlu (Afb)","Tekirdag (Corlu)")
 tidy_airports("Cagliari","Cagliari (Elmas)")
 
+tidy_airports("Los Angeles International","Los Angeles")
+tidy_airports("Abu Dhabi International","Abu Dhabi")
+tidy_airports("Miami International","Miami")
+tidy_airports("Philadelphia International","Philadelphia")
+
+tidy_airports("Denver International","Denver")
+tidy_airports("Benazir Bhutto International","Benazir Bhutto")
+tidy_airports("Guangzhou Baiyun International","Guangzhou Baiyun")
+tidy_airports("Halifax Int","Halifax")
+tidy_airports("Ottawa International","Ottawa")
+tidy_airports("Tarbes-Lourdes International","Tarbes-Lourdes")
+tidy_airports("Islamabad International","Islamabad")
+tidy_airports("Jakarta (Soekarno-Hatta Intnl)","Jakarta (Soekarno-Hatta)")
+tidy_airports("Jakarta (Soekarno-Hattanl)","Jakarta (Soekarno-Hatta)")
+tidy_airports("Changsha Huanghua International","Changsha Huanghua")
+tidy_airports("Wuhan Tianhe International","Wuhan Tianhe")
+
+tidy_airports("Male International","Male")
+tidy_airports("Chongqing Jiangbei International","Chongqing Jiangbei")
+tidy_airports("Auckland International","Auckland")
+tidy_airports("Phu Quoc International","Phu Quoc")
+tidy_airports("Sanya Phoenix International","Sanya Phoenix")
+tidy_airports("Kharkov Osnova Intl","Kharkov Osnova")
+tidy_airports("Windsor Locks Bradley Intl","Windsor Locks Bradley")
+tidy_airports("East Midlands International","East Midlands")
+tidy_airports("Nottingham East Midlands Int'l","East Midlands")
+tidy_airports("Manston (Kent Int)","Kent")
+tidy_airports("Bali International","Bali")
+tidy_airports("Minot International","Minot")
+tidy_airports("Erbil International","Erbil")
+
 
 pass_od$airport2_country[pass_od$airport2 == "Pristina"] <- "Kosovo"
 pass_od$airport2_country[pass_od$airport2 == "Bahrain"] <- "Bahrain"
@@ -195,11 +227,11 @@ res <- res[lengths(res) != 0]
 
 
 all_od <- full_join(pass_od2, flight_od2, by= c("airport1","airport1_country","airport2","airport2_country") )
-saveRDS(all_od,"data/clean/pass_flighs_od.Rds")
-saveRDS(pass_od2, "data/clean/passenger_od_second_clean.Rds")
-saveRDS(flight_od, "data/clean/flighs_od_second_clean.Rds")
+saveRDS(all_od,"data/clean/pass_flighs_od_v2.Rds")
+saveRDS(pass_od2, "data/clean/passenger_od_second_clean_v2.Rds")
+saveRDS(flight_od, "data/clean/flighs_od_second_clean_v2.Rds")
 airports <- airports[!duplicated(airports),]
-write_sf(airports, "data/clean/airports_clean_second_pass.gpkg")
+write_sf(airports, "data/clean/airports_clean_second_pass_v2.gpkg")
 
 
 # Check Airport Locations

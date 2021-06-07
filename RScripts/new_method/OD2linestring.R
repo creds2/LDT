@@ -3,8 +3,8 @@ library(tmap)
 library(dplyr)
 tmap_mode("view")
 
-od <- readRDS("data/clean/pass_flighs_od.Rds")
-airports <- read_sf("data/clean/airports_clean_second_pass.gpkg")
+od <- readRDS("data/clean/pass_flighs_od_v2.Rds")
+airports <- read_sf("data/clean/airports_clean_second_pass_v2.gpkg")
 
 
 qtm(airports)
@@ -53,12 +53,17 @@ line <- do.call(c, line)
 line <- st_segmentize(line, units::set_units(1, km))
 od_good <- as.data.frame(od_good)
 od_good$geometry <- line
+#stop()
+#od_good$length2 <- round(geodist::geodist(st_coordinates(od_good$geom_from), st_coordinates(od_good$geom_to), paired = TRUE, measure = "geodesic") / 1000, 1)
 od_good$geom_from <- NULL
 od_good$geom_to <- NULL
 
 od_good <- st_as_sf(od_good, crs = 4326)
 
 od_good$length_km <- round(as.numeric(st_length(od_good)) / 1000, 1)
+
+ 
+
 
 od_good$pass_km_2018 <- od_good$`2018` * od_good$length_km
 
@@ -101,4 +106,4 @@ ggplot(paris_sum, aes(Year, Passengers, colour = Airport)) +
   scale_x_continuous(breaks = seq(1990,2018,2))
 
 qtm(od_top, lines.col = "pass_km_2018")
-write_sf(od_good, "data/clean/od_flights_pass.gpkg")
+write_sf(od_good, "data/clean/od_flights_pass_v2.gpkg")

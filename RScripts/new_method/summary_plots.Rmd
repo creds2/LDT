@@ -7,6 +7,7 @@ output: github_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+
 ## GitHub Documents
 
 This is an R Markdown format used for publishing markdown documents to GitHub. When you click the **Knit** button all R code chunks are run and a markdown file (.md) suitable for publishing to GitHub is generated.
@@ -23,8 +24,8 @@ library(countrycode)
 library(tidyr)
 library(ggplot2)
 
-pass_od <- read_sf("../../data/clean/od_flights_pass.gpkg")
-airports <- read_sf("../../data/clean/airports_clean_second_pass.gpkg")
+pass_od <- read_sf("../../data/clean/od_flights_pass_v2.gpkg")
+airports <- read_sf("../../data/clean/airports_clean_second_pass_v2.gpkg")
 
 # Add Emissions
 # From Defra emissions factors 2020
@@ -212,6 +213,289 @@ ggplot(pass_region, aes(x=var, y=count, fill = area)) +
 
 
 ```
+```{r eu_bounds, echo=FALSE}
+dir.create("tmp")
+unzip("../../data/Europe Bounds/ref-countries-2020-20m.geojson.zip", exdir = "tmp")
+bounds <- read_sf("tmp/CNTR_BN_20M_2020_4326.geojson")
+bounds <- bounds[,c("EFTA_FLAG","EU_FLAG")]
+bounds_eu <- bounds[bounds$EFTA_FLAG == "T" |
+                  bounds$EU_FLAG == "T",]
+bounds <- bounds[st_buffer(bounds_eu, 10),]
+unlink("tmp", recursive = TRUE)
+```
+
+
+## Doemstic and Near based OD
+
+```{r int_pass, echo=FALSE}
+pass_od <- read_sf("../../data/clean/od_flights_pass_v2.gpkg")
+od_near <- pass_od[pass_od$length_km < 1200,]
+od_near <- od_near[!is.na(od_near$X2018),]
+od_near <- od_near[od_near$X2018 > 0,]
+
+m5 <- tm_shape(od_near[order(od_near$X2018),]) +
+  tm_lines(col = "X2018", 
+           lwd = "X2018",
+           title.col = "Passengers (2018)",
+           legend.lwd.show = FALSE,
+           style = "pretty",
+           n = 10,
+           scale = 3,
+           palette = viridisLite::plasma(10, end = 0.31, begin = 0.95)
+            ) +
+  tm_shape(bounds) +
+  tm_lines(col = "black") +
+  tm_shape(airports[airports$airport %in% od_near$airport1 | airports$airport %in% od_near$airport2,]) +
+  tm_dots(col = "black") +
+  tm_legend(position = c(0.01,0.23)) +
+  tm_compass(position = c("left","top")) +
+  tm_scale_bar(position = c("right","top"))
+  
+tmap_save(m5, filename = "near_OD.png")
+
+
+# Channel Island Summary
+chnl <- c("Guernsey","Jersey")
+pass_channel <- pass_od_dom[pass_od_dom$airport1 %in% chnl | pass_od_dom$airport2 %in% chnl,]
+sum(pass_channel$X2018)
+# flights per person
+sum(pass_channel$X2018) / 170499
+```
+
+
+
+
+
+## Top routes over time
+
+```{r top_routes, echo=FALSE}
+od <- read_sf("../../data/clean/od_flights_pass_v2.gpkg")
+od$route <- paste0(od$airport1," to ",od$airport2)
+od <- st_drop_geometry(od)
+
+rts <- ""
+for(i in 1990:2018){
+  od <- od[order(od[paste0("X",i)], decreasing = TRUE),]
+  rts <- c(rts, od$route[1:10])
+}
+
+rts <- unique(rts)
+rts <- rts[rts != ""]
+od_top <- od[od$route %in% rts, ]
+
+od_top <- od_top[,c("route", paste0("X",1990:2018))]
+
+
+od_top <- pivot_longer(od_top, cols = starts_with("X"))
+names(od_top) <- c("route","year","passengers")
+od_top$year <- as.numeric(gsub("X","",od_top$year))
+
+od_top <- od_top[od_top$passengers != 0,]
+
+# ggplot(od_top, aes(x = year, y = passengers, color = route)) +
+#   geom_line() +
+#   geom_point() +
+#   scale_y_continuous(labels = paste0(seq(0,4,0.5), "M"),
+#                      breaks = 10^6 * seq(0,4,0.5)
+#   ) +
+#   # Add labels at the end of the line
+#   geom_text(data = filter(od_top, year == max(year)),
+#             aes(label = route),
+#             hjust = 0, nudge_x = 0.1) +
+#   # Allow labels to bleed past the canvas boundaries
+#   coord_cartesian(clip = 'off') +
+#   # Remove legend & adjust margins to give more space for labels
+#   # Remember, the margins are t-r-b-l
+#   theme(legend.position = 'none',
+#         plot.margin = margin(0.1, 6.2, 0.1, 0.1, "cm")) +
+#   ggsave("top_10_routes_2018.png", width = 6, height = 10)
+
+
+ggplot(od_top, aes(x = year, y = passengers, color = route)) +
+  geom_line() +
+  geom_point() +
+  scale_y_continuous(labels = paste0(seq(0,4,1), "M"),
+                     breaks = 10^6 * seq(0,4,1)
+  ) +
+  facet_wrap(vars(route), labeller = label_wrap_gen(width=30)) +
+  theme(legend.position = "none",
+        strip.text = element_text(size=5)) +
+  ggsave("top_10_routes_2018.png", width = 6, height = 8)
+
+```
+## Cluster Airports
+
+```{r cluster_airports, echo=FALSE}
+library(geosphere)
+airports <- read_sf("../../data/clean/airports_clean_second_pass_v2.gpkg")
+airports <- as(airports,"Spatial")
+# use the distm function to generate a geodesic distance matrix in meters
+mdist <- distm(airports)
+# cluster all points using a hierarchical clustering approach
+hc <- hclust(as.dist(mdist), method="complete")
+# define the distance threshold, in this case 100 km
+d=90000
+# define clusters based on a tree "height" cutoff "d" and add them to the SpDataFrame
+airports$clust <- cutree(hc, h=d)
+airports <- st_as_sf(airports)
+
+airports$clust <- as.character(airports$clust)
+
+
+tm_shape(airports[airports$clust %in% airports$clust[duplicated(airports$clust)],]) +
+  tm_dots(col = "clust")
+
+airports_jn <- st_drop_geometry(airports)
+names(airports_jn) <- c("airport","country","clust_from")
+od <- left_join(od, airports_jn, by = c("airport1" = "airport", "airport1_country" = "country"))
+names(airports_jn) <- c("airport","country","clust_to")
+od <- left_join(od, airports_jn, by = c("airport2" = "airport", "airport2_country" = "country"))
+
+od_clust <- od %>%
+  select(-airport1, -airport1_country, -airport2, -airport2_country, -route) %>%
+  group_by(clust_from, clust_to) %>%
+  summarise_all(sum, na.rm = TRUE)
+
+od_clust$route <- paste0(od_clust$clust_from," to ",od_clust$clust_to)
+
+rts <- ""
+for(i in 1990:2018){
+  od_clust <- od_clust[order(od_clust[paste0("X",i)], decreasing = TRUE),]
+  rts <- c(rts, od_clust$route[1:10])
+}
+
+rts <- unique(rts)
+rts <- rts[rts != ""]
+od_clus_top <- od_clust[od_clust$route %in% rts, ]
+od_clus_top <- od_clus_top[,c("route", paste0("X",1990:2018))]
+
+od_clus_top$route <- gsub("687","London",od_clus_top$route)
+od_clus_top$route <- gsub("59","Dublin",od_clus_top$route)
+od_clus_top$route <- gsub("682","Edinburgh",od_clus_top$route)
+od_clus_top$route <- gsub("84","Amsterdam/Rotterdam",od_clus_top$route)
+od_clus_top$route <- gsub("678","Belfast",od_clus_top$route)
+od_clus_top$route <- gsub("257","New York",od_clus_top$route)
+od_clus_top$route <- gsub("166","Dubai",od_clus_top$route)
+od_clus_top$route <- gsub("683","Glasgow",od_clus_top$route)
+od_clus_top$route <- gsub("86","Barcelona",od_clus_top$route)
+od_clus_top$route <- gsub("92","Madrid",od_clus_top$route)
+od_clus_top$route <- gsub("22","Geneva",od_clus_top$route)
+od_clus_top$route <- gsub("77","Rome",od_clus_top$route)
+od_clus_top$route <- gsub("89","Malaga/Granada",od_clus_top$route)
+od_clus_top$route <- gsub("33","Paris",od_clus_top$route)
+od_clus_top$route <- gsub("46","Frankfurt/Mannheim",od_clus_top$route)
+od_clus_top$route <- gsub("201","Los Angeles",od_clus_top$route)
+od_clus_top$route <- gsub("119","Zurich",od_clus_top$route)
+od_clus_top$route <- gsub("688","Manchester/Liverpool",od_clus_top$route)
+od_clus_top$route <- gsub("7","Brussels/Antwerp",od_clus_top$route)
+od_clus_top$route <- gsub("66","Milan",od_clus_top$route)
+
+od_clus_top <- pivot_longer(od_clus_top, cols = starts_with("X"))
+names(od_clus_top) <- c("route","year","passengers")
+od_clus_top$year <- as.numeric(gsub("X","",od_clus_top$year))
+od_clus_top <- od_clus_top[od_clus_top$passengers != 0,]
+
+ggplot(od_clus_top, aes(x = year, y = passengers, color = route)) +
+  geom_line() +
+  geom_point() +
+  scale_y_continuous(labels = paste0(seq(0,8,2), "M"),
+                     breaks = 10^6 * seq(0,8,2)
+  ) +
+  facet_wrap(vars(route), labeller = label_wrap_gen(width=30)) +
+  theme(legend.position = "none",
+        strip.text = element_text(size=5)) +
+  ggsave("top_10_routes_clusters.png", width = 6, height = 8)
+
+```
+
+## Top clusters for passenger km
+
+
+```{r cluster_airports_km, echo=FALSE}
+
+od_clust$pass_km_1990 <- od_clust$X1990 * od_clust$length_km
+od_clust$pass_km_1991 <- od_clust$X1991 * od_clust$length_km
+od_clust$pass_km_1992 <- od_clust$X1992 * od_clust$length_km
+od_clust$pass_km_1993 <- od_clust$X1993 * od_clust$length_km
+od_clust$pass_km_1994 <- od_clust$X1994 * od_clust$length_km
+od_clust$pass_km_1995 <- od_clust$X1995 * od_clust$length_km
+od_clust$pass_km_1996 <- od_clust$X1996 * od_clust$length_km
+od_clust$pass_km_1997 <- od_clust$X1997 * od_clust$length_km
+od_clust$pass_km_1998 <- od_clust$X1998 * od_clust$length_km
+od_clust$pass_km_1999 <- od_clust$X1999 * od_clust$length_km
+od_clust$pass_km_2000 <- od_clust$X2000 * od_clust$length_km
+od_clust$pass_km_2001 <- od_clust$X2001 * od_clust$length_km
+od_clust$pass_km_2002 <- od_clust$X2002 * od_clust$length_km
+od_clust$pass_km_2003 <- od_clust$X2003 * od_clust$length_km
+od_clust$pass_km_2004 <- od_clust$X2004 * od_clust$length_km
+od_clust$pass_km_2005 <- od_clust$X2005 * od_clust$length_km
+od_clust$pass_km_2006 <- od_clust$X2006 * od_clust$length_km
+od_clust$pass_km_2007 <- od_clust$X2007 * od_clust$length_km
+od_clust$pass_km_2008 <- od_clust$X2008 * od_clust$length_km
+od_clust$pass_km_2009 <- od_clust$X2009 * od_clust$length_km
+od_clust$pass_km_2010 <- od_clust$X2010 * od_clust$length_km
+od_clust$pass_km_2011 <- od_clust$X2011 * od_clust$length_km
+od_clust$pass_km_2012 <- od_clust$X2012 * od_clust$length_km
+od_clust$pass_km_2013 <- od_clust$X2013 * od_clust$length_km
+od_clust$pass_km_2014 <- od_clust$X2014 * od_clust$length_km
+od_clust$pass_km_2015 <- od_clust$X2015 * od_clust$length_km
+od_clust$pass_km_2016 <- od_clust$X2016 * od_clust$length_km
+od_clust$pass_km_2017 <- od_clust$X2017 * od_clust$length_km
+od_clust$pass_km_2018 <- od_clust$X2018 * od_clust$length_km
+
+
+rts <- ""
+for(i in 1990:2018){
+  od_clust <- od_clust[order(od_clust[paste0("pass_km_",i)], decreasing = TRUE),]
+  rts <- c(rts, od_clust$route[1:10])
+}
+
+rts <- unique(rts)
+rts <- rts[rts != ""]
+od_clus_top <- od_clust[od_clust$route %in% rts, ]
+od_clus_top <- od_clus_top[,c("route", paste0("pass_km_",1990:2018))]
+
+#qtm(airports[airports$clust == 192,])
+
+od_clus_top$route <- gsub("687","London",od_clus_top$route)
+od_clus_top$route <- gsub("257","New York",od_clus_top$route)
+od_clus_top$route <- gsub("166","Dubai",od_clus_top$route)
+od_clus_top$route <- gsub("201","Los Angeles",od_clus_top$route)
+od_clus_top$route <- gsub("176","Hong Kong/Shenzhen",od_clus_top$route)
+od_clus_top$route <- gsub("179","Singapore",od_clus_top$route)
+od_clus_top$route <- gsub("207","San Francisco",od_clus_top$route)
+od_clus_top$route <- gsub("187","Toronto",od_clus_top$route)
+od_clus_top$route <- gsub("198","Miami",od_clus_top$route)
+od_clus_top$route <- gsub("159","Johannesburg",od_clus_top$route)
+od_clus_top$route <- gsub("194","Chicago",od_clus_top$route)
+od_clus_top$route <- gsub("294","Doha",od_clus_top$route)
+od_clus_top$route <- gsub("177","Tokyo",od_clus_top$route)
+od_clus_top$route <- gsub("203","Orlando",od_clus_top$route)
+od_clus_top$route <- gsub("191","Washington/Baltimore",od_clus_top$route)
+od_clus_top$route <- gsub("192","Boston/Providence",od_clus_top$route)
+od_clus_top$route <- gsub("33","Paris",od_clus_top$route)
+
+
+od_clus_top <- pivot_longer(od_clus_top, cols = starts_with("pass_km_"))
+names(od_clus_top) <- c("route","year","passenger_km")
+od_clus_top$year <- as.numeric(gsub("pass_km_","",od_clus_top$year))
+od_clus_top <- od_clus_top[od_clus_top$passenger_km != 0,]
+
+ggplot(od_clus_top, aes(x = year, y = passenger_km, color = route)) +
+  geom_line() +
+  geom_point() +
+  scale_y_continuous(labels = paste0(seq(0,600,200), "B"),
+                     breaks = 10^9 * seq(0,600,200)
+  ) +
+  facet_wrap(vars(route), labeller = label_wrap_gen(width=30)) +
+  ylab("Passenger km") +
+  theme(legend.position = "none",
+        strip.text = element_text(size=5)) +
+  ggsave("top_10_routes_km_clusters.png", width = 6, height = 8)
+
+```
+
+
 
 ## European Flights vs Rail
 
@@ -228,14 +512,7 @@ pass_europe <- pass_europe[pass_europe$continent == "Europe",]
 
 
 
-dir.create("tmp")
-unzip("../../data/Europe Bounds/ref-countries-2020-20m.geojson.zip", exdir = "tmp")
-bounds <- read_sf("tmp/CNTR_BN_20M_2020_4326.geojson")
-bounds <- bounds[,c("EFTA_FLAG","EU_FLAG")]
-bounds_eu <- bounds[bounds$EFTA_FLAG == "T" |
-                  bounds$EU_FLAG == "T",]
-bounds <- bounds[st_buffer(bounds_eu, 10),]
-unlink("tmp", recursive = TRUE)
+
 ```
 
 ```{r int_pass_plot, echo=FALSE}
@@ -415,43 +692,4 @@ od_france <- od_france %>%
 
 ```
 
-## UK based OD
 
-```{r int_pass, echo=FALSE}
-pass_od_dom <- read_sf("../../data/clean/od_flights_pass.gpkg")
-ctrs <- c("United Kingdom","Irish Republic","Guernsey","Isle of Man","Jersey")
-pass_od_dom <- pass_od_dom[pass_od_dom$airport1_country %in% ctrs & 
-                             pass_od_dom$airport2_country %in% ctrs,]
-pass_od_dom <- pass_od_dom[,c("airport1","airport1_country", "airport2","airport2_country","X2018","pass_km_2018")]
-pass_od_dom <- pass_od_dom[!is.na(pass_od_dom$X2018),]
-pass_od_dom <- pass_od_dom[pass_od_dom$X2018 > 0,]
-pass_od_dom$lenght_km <- as.numeric(st_length(pass_od_dom)) / 1000
-
-m5 <- tm_shape(pass_od_dom[order(pass_od_dom$X2018),]) +
-  tm_lines(col = "X2018", 
-           lwd = "X2018",
-           title.col = "Passengers (2018)",
-           legend.lwd.show = FALSE,
-           style = "jenks",
-           n = 10,
-           scale = 3,
-           palette = viridisLite::plasma(10, end = 0.31, begin = 0.95)
-            ) +
-  tm_shape(bounds) +
-  tm_lines(col = "black") +
-  tm_layout(legend.outside = TRUE) +
-  tm_shape(airports) +
-  tm_dots(col = "black") +
-  tm_compass(position = c("left","top")) +
-  tm_scale_bar(position = c("left","bottom"))
-  
-tmap_save(m5, filename = "domestic_OD.png")
-
-
-# Channel Island Summary
-chnl <- c("Guernsey","Jersey")
-pass_channel <- pass_od_dom[pass_od_dom$airport1 %in% chnl | pass_od_dom$airport2 %in% chnl,]
-sum(pass_channel$X2018)
-# flights per person
-sum(pass_channel$X2018) / 170499
-```

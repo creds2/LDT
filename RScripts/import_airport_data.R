@@ -157,6 +157,7 @@ for(i in 1:length(zips)){
 
 for(i in seq(length(zips) + 1, length(zips) + 4)){
   dir <- i - length(zips) + 2014
+  message(dir)
   files_csv <- list.files(file.path(path, dir), pattern = ".csv", full.names = TRUE)
   files <- files_csv
   
@@ -189,10 +190,18 @@ for(i in seq(length(zips) + 1, length(zips) + 4)){
   }
   names(int_od) <- c("year","uk_airport","foreign_country","foreign_airport","total_pax", "scheduled_pax","charter_pax")
   
-  dom_od <- files[grep("dom_air_pax_route", files,ignore.case = TRUE)] 
+  dom_od <- files[grep("domestic_air_pax_traffic_route", files,ignore.case = TRUE)] 
   if(length(dom_od) > 1){
     dom_od <- dom_od[1]
   }
+  
+  if(length(dom_od) == 0){
+    dom_od <- files[grep("dom_air_pax_route", files,ignore.case = TRUE)] 
+    if(length(dom_od) > 1){
+      dom_od <- dom_od[1]
+    }
+  }
+  
   dom_od <- readr::read_csv(dom_od)
   if(all(c("this_period","apt1_apt_name","apt2_apt_name","total_pax_tp", "total_pax_shd_tp", "total_pax_cht_tp") %in% names(dom_od))){
     dom_od <- dom_od[,c("this_period","apt1_apt_name","apt2_apt_name","total_pax_tp", "total_pax_shd_tp", "total_pax_cht_tp")]
@@ -222,6 +231,6 @@ transit <- dplyr::bind_rows(res_transit)
 int_od <- dplyr::bind_rows(res_int_od)
 dom_od <- dplyr::bind_rows(res_dom_od[lengths(res_dom_od) >0])
 
-saveRDS(transit, "data/CAA_transit.Rds")
-saveRDS(int_od, "data/CAA_int_od.Rds")
-saveRDS(dom_od, "data/CAA_dom_od.Rds")
+saveRDS(transit, "data/CAA_transit_v2.Rds")
+saveRDS(int_od, "data/CAA_int_od_v2.Rds")
+saveRDS(dom_od, "data/CAA_dom_od_v2.Rds")

@@ -6,8 +6,8 @@ tmap_mode("view")
 # Read in
 
 #pass_transit <- readRDS("data/CAA_transit.Rds")
-pass_int_od <- readRDS("data/CAA_int_od.Rds")
-pass_dom_od <- readRDS("data/CAA_dom_od.Rds")
+pass_int_od <- readRDS("data/CAA_int_od_v2.Rds")
+pass_dom_od <- readRDS("data/CAA_dom_od_v2.Rds")
 
 airports_fixed <- readRDS("airports_final.Rds")
 airports2 <- readRDS("airports.Rds")
@@ -458,9 +458,9 @@ pass_dom_od <- pass_dom_od %>%
 pass_dom_od$key <- NULL
 
 
-write_sf(airports_all,"data/airports_pass.gpkg")
-saveRDS(pass_int_od, "data/CAA_int_od_clean.Rds")
-saveRDS(pass_dom_od, "data/CAA_dom_od_clean.Rds")
+write_sf(airports_all,"data/airports_pass_v2.gpkg")
+saveRDS(pass_int_od, "data/CAA_int_od_clean_v2.Rds")
+saveRDS(pass_dom_od, "data/CAA_dom_od_clean_v2.Rds")
 
 qtm(airports_all)
 

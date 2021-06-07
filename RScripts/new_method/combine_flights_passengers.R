@@ -1,7 +1,7 @@
 library(sf)
 library(dplyr)
 
-pass_od <- readRDS("data/clean/passenger_od_wide.Rds")
+pass_od <- readRDS("data/passenger_od_wide_v2.Rds")
 flight_od <- readRDS("data/clean/flights_od_prepped.Rds")
 
 # Load Airports
@@ -447,6 +447,6 @@ flight_od2 <- flight_od %>%
 pass_od2 <- pass_od2[rowSums(pass_od2[,as.character(1990:2018)]) != 0,]
 flight_od2 <- flight_od2[rowSums(flight_od2[,paste0("flt_",1990:2018)]) != 0,]
 
-saveRDS(pass_od2, "data/clean/passenger_od_first_clean.Rds")
-saveRDS(flight_od2, "data/clean/flighs_od_first_clean.Rds")
-write_sf(airports, "data/clean/airports_clean_first_pass.gpkg")
+saveRDS(pass_od2, "data/clean/passenger_od_first_clean_v2.Rds")
+saveRDS(flight_od2, "data/clean/flighs_od_first_clean_v2.Rds")
+write_sf(airports, "data/clean/airports_clean_first_pass_v2.gpkg")

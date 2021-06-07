@@ -4,7 +4,7 @@ library(tmap)
 tmap_mode("view")
 
 # Load Passenger OD Data
-pass_od <- readRDS("data/passenger_od_wide.Rds")
+pass_od <- readRDS("data/passenger_od_wide_v2.Rds")
 pass_od <- pass_od[!pass_od$airport2 %in% c("=","Unknown"),]
 pass_od$airport1 <- gsub(" International","",pass_od$airport1)
 pass_od$airport2 <- gsub(" International","",pass_od$airport2)
