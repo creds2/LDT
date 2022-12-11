@@ -3,8 +3,8 @@ library(tmap)
 library(dplyr)
 tmap_mode("view")
 
-od <- readRDS("data/clean/pass_flighs_od_v2.Rds")
-airports <- read_sf("data/clean/airports_clean_second_pass_v2.gpkg")
+od <- readRDS("data/clean/pass_flighs_od_2021.Rds")
+airports <- read_sf("data/clean/airports_clean_second_pass_2021.gpkg")
 
 
 qtm(airports)
@@ -19,30 +19,32 @@ summary(st_is_empty(od$geom_to))
 
 od_good <- od[!st_is_empty(od$geom_from) & !st_is_empty(od$geom_to),]
 od_bad <- od[st_is_empty(od$geom_from) | st_is_empty(od$geom_to),]
-message(paste(round(nrow(od_bad) / nrow(od) * 100,2),"% bad geoms"))
+od_bad <- od_bad[!od_bad$airport2 %in% c("Unknown"),]
+od_bad <- od_bad[!od_bad$airport1 %in% c("Unknown"),]
+message(paste(round(nrow(od_bad) / nrow(od) * 100,3),"% bad geoms, excluding unknown"))
 
-od_bad_from <- od_bad[st_is_empty(od_bad$geom_from),]
-od_bad_to <- od_bad[st_is_empty(od_bad$geom_to),]
-od_bad_to <- od_bad_to[od_bad_to$airport2 != "Unknown",]
-
-od_bad_to <- od_bad_to %>% group_by(airport2, airport2_country) %>%
-  summarise(pass = sum(c(`2018`,`2017`,`2016`,`2015`,`2014`,`2013`,`2012`,`2011`,`2010`,
-                         `2009`,`2008`,`2007`,`2006`,`2005`,`2004`,`2003`,`2002`,`2001`,`2000`,
-                         `1999`,`1998`,`1997`,`1996`,`1995`,`1994`,`1993`,`1992`,`1991`,`1990`) , na.rm = TRUE),
-            flt = sum(c(`flt_2018`,`flt_2017`,`flt_2016`,`flt_2015`,`flt_2014`,`flt_2013`,`flt_2012`,`flt_2011`,`flt_2010`,
-                        `flt_2009`,`flt_2008`,`flt_2007`,`flt_2006`,`flt_2005`,`flt_2004`,`flt_2003`,`flt_2002`,`flt_2001`,`flt_2000`,
-                        `flt_1999`,`flt_1998`,`flt_1997`,`flt_1996`,`flt_1995`,`flt_1994`,`flt_1993`,`flt_1992`,`flt_1991`,`flt_1990`), na.rm = TRUE))
-
-od_bad_from <- od_bad_from %>% group_by(airport1, airport1_country) %>%
-  summarise(pass = sum(`2018`, na.rm = TRUE))
-
-names(airports) <- c("airport", "country", "geom")
-
-airports_bad <- airports[!airports$airport %in% od$airport2, ]
-airports_bad <- airports_bad[airports_bad$country != "United Kingdom", ]
-
-message(paste(round(sum(rowSums(od_bad[,as.character(1990:2018)]), na.rm = T) / 
-                      sum(rowSums(od[,as.character(1990:2018)]), na.rm = T) * 100,4),"% missing passengers"))
+# od_bad_from <- od_bad[st_is_empty(od_bad$geom_from),]
+# od_bad_to <- od_bad[st_is_empty(od_bad$geom_to),]
+# od_bad_to <- od_bad_to[od_bad_to$airport2 != "Unknown",]
+# 
+# od_bad_to <- od_bad_to %>% group_by(airport2, airport2_country) %>%
+#   summarise(pass = sum(c(`2018`,`2017`,`2016`,`2015`,`2014`,`2013`,`2012`,`2011`,`2010`,
+#                          `2009`,`2008`,`2007`,`2006`,`2005`,`2004`,`2003`,`2002`,`2001`,`2000`,
+#                          `1999`,`1998`,`1997`,`1996`,`1995`,`1994`,`1993`,`1992`,`1991`,`1990`) , na.rm = TRUE),
+#             flt = sum(c(`flt_2018`,`flt_2017`,`flt_2016`,`flt_2015`,`flt_2014`,`flt_2013`,`flt_2012`,`flt_2011`,`flt_2010`,
+#                         `flt_2009`,`flt_2008`,`flt_2007`,`flt_2006`,`flt_2005`,`flt_2004`,`flt_2003`,`flt_2002`,`flt_2001`,`flt_2000`,
+#                         `flt_1999`,`flt_1998`,`flt_1997`,`flt_1996`,`flt_1995`,`flt_1994`,`flt_1993`,`flt_1992`,`flt_1991`,`flt_1990`), na.rm = TRUE))
+# 
+# od_bad_from <- od_bad_from %>% group_by(airport1, airport1_country) %>%
+#   summarise(pass = sum(`2018`, na.rm = TRUE))
+# 
+# names(airports) <- c("airport", "country", "geom")
+# 
+# airports_bad <- airports[!airports$airport %in% od$airport2, ]
+# airports_bad <- airports_bad[airports_bad$country != "United Kingdom", ]
+# 
+# message(paste(round(sum(rowSums(od_bad[,as.character(1990:2018)]), na.rm = T) / 
+#                       sum(rowSums(od[,as.character(1990:2018)]), na.rm = T) * 100,4),"% missing passengers"))
 
 #od_bad <- as.data.frame(table(od_bad$airport2))
 
@@ -54,18 +56,24 @@ line <- st_segmentize(line, units::set_units(1, km))
 od_good <- as.data.frame(od_good)
 od_good$geometry <- line
 #stop()
-#od_good$length2 <- round(geodist::geodist(st_coordinates(od_good$geom_from), st_coordinates(od_good$geom_to), paired = TRUE, measure = "geodesic") / 1000, 1)
+
+od_good$length_km <- round(geodist::geodist(st_coordinates(od_good$geom_from), st_coordinates(od_good$geom_to), paired = TRUE, measure = "geodesic") / 1000, 1)
 od_good$geom_from <- NULL
 od_good$geom_to <- NULL
 
 od_good <- st_as_sf(od_good, crs = 4326)
 
-od_good$length_km <- round(as.numeric(st_length(od_good)) / 1000, 1)
-
- 
+#od_good$length_km <- round(as.numeric(st_length(od_good)) / 1000, 1)
 
 
 od_good$pass_km_2018 <- od_good$`2018` * od_good$length_km
+od_good$pass_km_2019 <- od_good$`2019` * od_good$length_km
+od_good$pass_km_2020 <- od_good$`2020` * od_good$length_km
+od_good$pass_km_2021 <- od_good$`2021` * od_good$length_km
+
+write_sf(od_good, "data/clean/od_flights_pass_2021.gpkg")
+
+stop("End of code")
 
 od_top <- od_good[!is.na(od_good$pass_km_2018),]
 od_top <- od_top[od_top$pass_km_2018 > 1e10,]
@@ -105,5 +113,5 @@ ggplot(paris_sum, aes(Year, Passengers, colour = Airport)) +
   geom_line(lwd = 1) +
   scale_x_continuous(breaks = seq(1990,2018,2))
 
-qtm(od_top, lines.col = "pass_km_2018")
-write_sf(od_good, "data/clean/od_flights_pass_v2.gpkg")
+qtm(od_top, lines.col = "pass_km_2019")
+

@@ -1,3 +1,6 @@
+library(dplyr)
+library(tidyr)
+
 files <- list.files("data/CAA_punctuality", full.names = TRUE)
 data_raw <- list()
 
@@ -40,6 +43,10 @@ for(i in 1:length(files)){
 
 data_raw <- dplyr::bind_rows(data_raw)
 
+
+data_raw$airport2[data_raw$origin_destination == "ISTANBUL" & data_raw$year < 2019] = "ISTANBUL ATATURK"
+
+
 flow <- data_raw %>%
   group_by(reporting_airport, origin_destination, origin_destination_country, year) %>%
   summarise(total_flights = sum(total_flights, na.rm = TRUE)) %>%
@@ -47,11 +54,14 @@ flow <- data_raw %>%
 
 
 # Put into Standard format
-names(flow) <- c("airport1","airport2","airport2_country",paste0("flt_",1990:2018))
+names(flow) <- c("airport1","airport2","airport2_country",paste0("flt_",1990:2021))
 flow$airport1_country <- "United Kingdom"
 flow$airport1 <- tools::toTitleCase(tolower(flow$airport1))
+#gsub("\xd3","O",flow$airport2[5159], fixed = TRUE)
+
+flow$airport2 <- stringi::stri_trans_general(flow$airport2, "latin-ascii")
 flow$airport2 <- tools::toTitleCase(tolower(flow$airport2))
 flow$airport2_country <- tools::toTitleCase(tolower(flow$airport2_country))
-flow <- flow[,c("airport1","airport1_country","airport2_country","airport2",paste0("flt_",1990:2018))]
+flow <- flow[,c("airport1","airport1_country","airport2_country","airport2",paste0("flt_",1990:2021))]
 
-saveRDS(flow,"data/clean/flights_od.Rds")
+saveRDS(flow,"data/clean/flights_od_2021.Rds")

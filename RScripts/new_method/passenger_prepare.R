@@ -1,8 +1,8 @@
 library(dplyr)
 library(tidyr)
 
-pass_int_od <- readRDS("data/clean/passenger_int_od.Rds")
-pass_dom_od <- readRDS("data/clean/passenger_dom_od.Rds")
+pass_int_od <- readRDS("data/clean/passenger_int_od_2021.Rds")
+pass_dom_od <- readRDS("data/clean/passenger_dom_od_2021.Rds")
 
 names(pass_int_od) <- c("year","airport1","airport2_country", "airport2", "total_pax","scheduled_pax","charter_pax" )
 pass_int_od$airport1_country <- "United Kingdom"
@@ -26,15 +26,18 @@ pass_od$airport1_country <- tools::toTitleCase(tolower(pass_od$airport1_country)
 pass_od$airport2_country <- tools::toTitleCase(tolower(pass_od$airport2_country))
 pass_od <- pass_od[,c("year","airport1","airport1_country","airport2","airport2_country","total_pax")]
 
+pass_od$airport2[pass_od$airport2 == "Istanbul" & pass_od$year < 2019] = "Istanbul Ataturk"
 
 pass_od[duplicated(pass_od[,c("year","airport1","airport1_country","airport2","airport2_country")]),]
 
 # combine some duplicates
 # come from two airports that seem to be the same location
-# In Istanbul
+# In Istanbul airport moved in 2019
+
+
 
 pass_od <- pass_od %>%
-  group_by(year,airport1,airport1_country,airport2,airport2_country,airport2) %>%
+  group_by(year,airport1,airport1_country,airport2,airport2_country) %>%
   summarise(total_pax = sum(total_pax))
 
 pass_od$airport1 <- gsub(" International","",pass_od$airport1)
@@ -52,4 +55,4 @@ pass_od$airport2 <- gsub(" Apt","",pass_od$airport2)
 
 pass_od_wide <- pivot_wider(pass_od, names_from = "year", values_from = "total_pax")
 
-saveRDS(pass_od_wide, "data/clean/passenger_od_wide.Rds")
+saveRDS(pass_od_wide, "data/clean/passenger_od_wide_2021.Rds")

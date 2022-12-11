@@ -1,8 +1,8 @@
 library(sf)
 library(dplyr)
 
-pass_od <- readRDS("data/passenger_od_wide_v2.Rds")
-flight_od <- readRDS("data/clean/flights_od_prepped.Rds")
+pass_od <- readRDS("data/clean/passenger_od_wide_2021.Rds")
+flight_od <- readRDS("data/clean/flights_od_prepped_2021.Rds")
 
 # Load Airports
 airports <- read_sf("data/airports_pass.gpkg")
@@ -26,6 +26,10 @@ airports$airport <- gsub(" Int'l","",airports$airport)
 airports$airport <- gsub(" Intl","",airports$airport)
 airports$airport <- gsub(" Int","",airports$airport)
 airports$airport <- iconv(airports$airport, from="UTF-8", to="ASCII//TRANSLIT")
+
+
+
+
 
 
 tidy_airports <- function(from,to){
@@ -444,9 +448,9 @@ flight_od2 <- flight_od %>%
   group_by(airport1,airport1_country,airport2,airport2_country) %>%
   summarise_all(sum, na.rm = TRUE)
 
-pass_od2 <- pass_od2[rowSums(pass_od2[,as.character(1990:2018)]) != 0,]
-flight_od2 <- flight_od2[rowSums(flight_od2[,paste0("flt_",1990:2018)]) != 0,]
+pass_od2 <- pass_od2[rowSums(pass_od2[,as.character(1990:2021)]) != 0,]
+flight_od2 <- flight_od2[rowSums(flight_od2[,paste0("flt_",1990:2021)]) != 0,]
 
-saveRDS(pass_od2, "data/clean/passenger_od_first_clean_v2.Rds")
-saveRDS(flight_od2, "data/clean/flighs_od_first_clean_v2.Rds")
-write_sf(airports, "data/clean/airports_clean_first_pass_v2.gpkg")
+saveRDS(pass_od2, "data/clean/passenger_od_first_clean_2021.Rds")
+saveRDS(flight_od2, "data/clean/flighs_od_first_clean_2021.Rds")
+write_sf(airports, "data/clean/airports_clean_first_pass_2021.gpkg")

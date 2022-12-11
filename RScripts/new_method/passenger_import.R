@@ -41,7 +41,7 @@ for(i in 1:length(zips)){
   
   if(mode == "csv"){
     transit <- files[grep("transit", files,ignore.case = TRUE)]
-    transit <- readr::read_csv(transit)
+    transit <- readr::read_csv(transit, show_col_types = FALSE)
     if(all(c("this_period","rpt_apt_name","total_pax_tp","term_pax_tp","tran_pax_tp") %in% names(transit))){
       transit <- transit[,c("this_period","rpt_apt_name","total_pax_tp","term_pax_tp","tran_pax_tp")]
       
@@ -57,7 +57,7 @@ for(i in 1:length(zips)){
     names(transit) <- c("year","airport","total_pax","terminating_pax","transit_pax")
     
     int_od <- files[grep("ntl_air_pax_route", files,ignore.case = TRUE)] 
-    int_od <- readr::read_csv(int_od)
+    int_od <- readr::read_csv(int_od, show_col_types = FALSE)
     if(all(c("report_period","uk_apt","foreign_country","foreign_apt","ty_t_pax", "ty_s_pax","ty_c_pax") %in% names(int_od))){
       int_od <- int_od[,c("report_period","uk_apt","foreign_country","foreign_apt","ty_t_pax", "ty_s_pax","ty_c_pax")]
     } else if (all(c("report_period","UK_airport","foreign_country","foreign_airport",paste0(yr,"_total_pax"), paste0(yr,"_scheduled_pax"),paste0(yr,"_charter_pax")) %in% names(int_od))) {
@@ -73,7 +73,7 @@ for(i in 1:length(zips)){
     if(length(dom_od) > 1){
       dom_od <- dom_od[1]
     }
-    dom_od <- readr::read_csv(dom_od)
+    dom_od <- readr::read_csv(dom_od, show_col_types = FALSE)
     if(all(c("this_period","apt1_apt_name","apt2_apt_name","total_pax_tp", "total_pax_shd_tp", "total_pax_cht_tp") %in% names(dom_od))){
       dom_od <- dom_od[,c("this_period","apt1_apt_name","apt2_apt_name","total_pax_tp", "total_pax_shd_tp", "total_pax_cht_tp")]
     } else if (all(c("this_period","airport1","airport2",paste0("total_pax_",yr), paste0("total_pax_scheduled_",yr),paste0("total_pax_charter_",yr)) %in% names(dom_od))){
@@ -155,13 +155,13 @@ for(i in 1:length(zips)){
   unlink("tmp", recursive = TRUE)
 }
 
-for(i in seq(length(zips) + 1, length(zips) + 4)){
+for(i in seq(length(zips) + 1, length(zips) + 7)){
   dir <- i - length(zips) + 2014
   files_csv <- list.files(file.path(path, dir), pattern = ".csv", full.names = TRUE)
   files <- files_csv
   
   transit <- files[grep("transit", files,ignore.case = TRUE)]
-  transit <- readr::read_csv(transit)
+  transit <- readr::read_csv(transit, show_col_types = FALSE)
   if(all(c("this_period","rpt_apt_name","total_pax_tp","term_pax_tp","tran_pax_tp") %in% names(transit))){
     transit <- transit[,c("this_period","rpt_apt_name","total_pax_tp","term_pax_tp","tran_pax_tp")]
     
@@ -176,8 +176,11 @@ for(i in seq(length(zips) + 1, length(zips) + 4)){
   
   names(transit) <- c("year","airport","total_pax","terminating_pax","transit_pax")
   
-  int_od <- files[grep("ntl_air_pax_route", files,ignore.case = TRUE)] 
-  int_od <- readr::read_csv(int_od)
+  int_od <- files[grep("ntl_air_pax_route", files,ignore.case = TRUE)]
+  if(length(int_od) == 0){
+    int_od <- files[grep("ntl air pax route", files,ignore.case = TRUE)]
+  }
+  int_od <- readr::read_csv(int_od, show_col_types = FALSE)
   if(all(c("report_period","uk_apt","foreign_country","foreign_apt","ty_t_pax", "ty_s_pax","ty_c_pax") %in% names(int_od))){
     int_od <- int_od[,c("report_period","uk_apt","foreign_country","foreign_apt","ty_t_pax", "ty_s_pax","ty_c_pax")]
   } else if (all(c("report_period","UK_airport","foreign_country","foreign_airport",paste0(yr,"_total_pax"), paste0(yr,"_scheduled_pax"),paste0(yr,"_charter_pax")) %in% names(int_od))) {
@@ -190,10 +193,13 @@ for(i in seq(length(zips) + 1, length(zips) + 4)){
   names(int_od) <- c("year","uk_airport","foreign_country","foreign_airport","total_pax", "scheduled_pax","charter_pax")
   
   dom_od <- files[grep("dom_air_pax_route", files,ignore.case = TRUE)] 
+  if(length(dom_od) == 0){
+    dom_od <- files[grep("dom air pax route", files,ignore.case = TRUE)]
+  }
   if(length(dom_od) > 1){
     dom_od <- dom_od[1]
   }
-  dom_od <- readr::read_csv(dom_od)
+  dom_od <- readr::read_csv(dom_od, show_col_types = FALSE)
   if(all(c("this_period","apt1_apt_name","apt2_apt_name","total_pax_tp", "total_pax_shd_tp", "total_pax_cht_tp") %in% names(dom_od))){
     dom_od <- dom_od[,c("this_period","apt1_apt_name","apt2_apt_name","total_pax_tp", "total_pax_shd_tp", "total_pax_cht_tp")]
   } else if (all(c("this_period","airport1","airport2",paste0("total_pax_",yr), paste0("total_pax_scheduled_",yr),paste0("total_pax_charter_",yr)) %in% names(dom_od))){
@@ -204,6 +210,31 @@ for(i in seq(length(zips) + 1, length(zips) + 4)){
     stop("unknown names in dom_od")
   }
   names(dom_od) <- c("year","airport1","airport2","total_pax", "scheduled_pax","charter_pax")
+  
+  # Dom data for 2016-2019 id duplicated by direction
+  
+  dom_od$key <- stplanr::od_id_szudzik(dom_od$airport1, dom_od$airport2)
+  
+  dom_od <- dom_od %>%
+    group_by(key) %>%
+    summarise(year = year[1],
+              airport1 = airport1[1],
+              airport2 = airport2[1],
+              total_pax = max(c(total_pax,0), na.rm = TRUE),
+              scheduled_pax = max(c(scheduled_pax,0), na.rm = TRUE),
+              charter_pax = max(c(charter_pax,0), na.rm = TRUE),
+              total_pax2 = min(c(total_pax), na.rm = TRUE),
+              scheduled_pax2 = min(c(scheduled_pax), na.rm = TRUE),
+              charter_pax2 = min(c(charter_pax), na.rm = TRUE)
+              
+              )
+  
+  dom_od$diff <- dom_od$total_pax - dom_od$total_pax2
+  message("difference of ",sum(dom_od$diff)," in AB BA passengers")
+  dom_od  <- dom_od[,c("year","airport1","airport2","total_pax", "scheduled_pax","charter_pax")]
+  
+  
+  
   
   res_transit[[i]] <- transit
   res_int_od[[i]] <- int_od
@@ -220,6 +251,6 @@ transit <- dplyr::bind_rows(res_transit)
 int_od <- dplyr::bind_rows(res_int_od)
 dom_od <- dplyr::bind_rows(res_dom_od[lengths(res_dom_od) >0])
 
-saveRDS(transit, "data/clean/passenger_transit.Rds")
-saveRDS(int_od, "data/clean/passenger_int_od.Rds")
-saveRDS(dom_od, "data/clean/passenger_dom_od.Rds")
+saveRDS(transit, "data/clean/passenger_transit_2021.Rds")
+saveRDS(int_od, "data/clean/passenger_int_od_2021.Rds")
+saveRDS(dom_od, "data/clean/passenger_dom_od_2021.Rds")

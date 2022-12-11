@@ -8,9 +8,6 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 
-## GitHub Documents
-
-This is an R Markdown format used for publishing markdown documents to GitHub. When you click the **Knit** button all R code chunks are run and a markdown file (.md) suitable for publishing to GitHub is generated.
 
 ## Including Code
 
@@ -23,68 +20,38 @@ library(dplyr)
 library(countrycode)
 library(tidyr)
 library(ggplot2)
+library(furrr)
 
-pass_od <- read_sf("../../data/clean/od_flights_pass_v2.gpkg")
-airports <- read_sf("../../data/clean/airports_clean_second_pass_v2.gpkg")
+pass_od <- read_sf("../../data/clean/od_emissions_2021.gpkg")
+airports <- read_sf("../../data/clean/airports_clean_second_pass_2021.gpkg")
 
-# Add Emissions
-# From Defra emissions factors 2020
-# domestic     0.2443  kg CO2e per pass KM
-# short hall   0.15553 
-# long hall    0.19085 
 
-emissions_factor <- data.frame(distance_band = c("domestic", "short haul","long haul"),
-                              emissions_factor = c(0.2443, 0.15553, 0.19085),
-                              stringsAsFactors = FALSE)
 
-distance_band <- pbapply::pbsapply(pass_od$airport2_country,
-                        function(x){
-                          if(x %in% c("Irish Republic","Kosovo")){
-                            return("short haul")
-                          }
-                          
-                          if(x %in% c("Guernsey","Isle of Man","Jersey","United Kingdom","Oil Rigs")){
-                            return("domestic")
-                          }
-                          
-                          if(x %in% c("Ascension Island","Virgin Islands (U.s.a)")){
-                            return("long haul")
-                          }
-                          
-                          cont <- countrycode(sourcevar = x,
-                            origin = "country.name",
-                            destination = "continent")
-                          
-                          if(cont == "Europe"){
-                            return("short haul")
-                          } else {
-                            return("long haul")
-                          }
-                        })
 
-pass_od$distance_band <- distance_band
-pass_od$emissions_factor <- emissions_factor$emissions_factor[match(pass_od$distance_band, emissions_factor$distance_band)] 
-pass_od$emissions <- pass_od$emissions_factor * pass_od$pass_km_2018
-
-pass_od <- pass_od[,c("airport1","airport1_country", "airport2","airport2_country","X2018","pass_km_2018","emissions")]
-pass_od <- st_drop_geometry(pass_od)
-pass_inter <- pass_od[pass_od$airport2_country != "United Kingdom", ]
-pass_inter <- pass_inter[!is.na(pass_inter$X2018),]
-pass_inter <- pass_inter[pass_inter$X2018 > 0,]
+pass_inter <- st_drop_geometry(pass_od)
+pass_inter <- pass_inter[pass_inter$airport2_country != "United Kingdom", ]
+pass_inter <- pass_inter[!is.na(pass_inter$pass_2019),]
+pass_inter <- pass_inter[pass_inter$pass_2019 > 0,]
 # Get Flight Distance
 
 pass_inter <- group_by(pass_inter, airport2, airport2_country) %>%
-  summarise(pass_2018 = sum(`X2018`),
-            pass_km_2018 = sum(`pass_km_2018`),
-            emissions = sum(emissions))
+  summarise(pass_2019 = sum(pass_2019, na.rm = T),
+            pass_km_2019 = sum(pass_km_2019, na.rm = T),
+            emissions_2019 = sum(emissions_2019, na.rm = T),
+            pass_2020 = sum(pass_2020, na.rm = T),
+            pass_km_2020 = sum(pass_km_2020, na.rm = T),
+            emissions_2020 = sum(emissions_2020, na.rm = T),
+            pass_2021 = sum(pass_2021, na.rm = T),
+            pass_km_2021 = sum(pass_km_2021, na.rm = T),
+            emissions_2021 = sum(emissions_2021, na.rm = T))
 
-pass_inter <- pass_inter[pass_inter$pass_2018 > 0,]
+pass_inter <- pass_inter[pass_inter$pass_2019 > 0,]
 pass_inter <- pass_inter[pass_inter$airport2 != "Unknown",]
 summary(pass_inter$airport2 %in% airports$airport)
 
 pass_inter <- left_join(airports, pass_inter, by = c("airport" = "airport2", "country" = "airport2_country"))
-pass_inter <- pass_inter[!is.na(pass_inter$pass_2018),]
-pass_inter <- pass_inter[pass_inter$pass_2018 > 0,]
+pass_inter <- pass_inter[!is.na(pass_inter$pass_2019),]
+pass_inter <- pass_inter[pass_inter$pass_2019 > 0,]
 
 
 ```
@@ -96,22 +63,32 @@ pass_inter <- pass_inter[pass_inter$pass_2018 > 0,]
 data(World)
 World <- st_transform(World, 4326)
 m1 <- tm_shape(pass_inter) +
-  tm_bubbles(size = "pass_2018", 
-             title.size = "Passengers 2018",
+  tm_bubbles(size = "pass_2019", 
+             title.size = "Passengers 2019",
+             col = "green") +
+  tm_shape(World) +
+  tm_borders(col = "black") +
+  tm_layout(legend.position = c("left","bottom"))
+tmap_save(m1, filename = "../../plots/international_passengers.png")
+
+m2 <- tm_shape(pass_inter) +
+  tm_bubbles(size = "pass_km_2019", 
+             title.size = "Passenger Kilometres 2019",
              col = "blue") +
   tm_shape(World) +
   tm_borders(col = "black") +
   tm_layout(legend.position = c("left","bottom"))
-tmap_save(m1, filename = "international_passengers.png")
+tmap_save(m2, filename = "../../plots/international_passengers_km.png")
 
-m2 <- tm_shape(pass_inter) +
-  tm_bubbles(size = "pass_km_2018", 
-             title.size = "Passenger Kilometres 2018",
+txt = expression("Emissions (kgCO"[2]~"e) 2019")
+m3 <- tm_shape(pass_inter) +
+  tm_bubbles(size = "emissions_2019", 
+             title.size = txt,
              col = "red") +
   tm_shape(World) +
   tm_borders(col = "black") +
   tm_layout(legend.position = c("left","bottom"))
-tmap_save(m2, filename = "international_passengers_km.png")
+tmap_save(m3, filename = "../../plots/international_emissions.png")
 ```
 
 
@@ -119,76 +96,73 @@ tmap_save(m2, filename = "international_passengers_km.png")
 
 ```{r int_pass_pie, echo=FALSE}
 
-pass_region <- st_drop_geometry(pass_inter)
+pass_region <- st_drop_geometry(pass_od)
 pass_region <- pass_region %>%
-  group_by(country) %>%
-  summarise(pass_2018 = sum(pass_2018),
-            pass_km_2018 = sum(pass_km_2018),
-            emissions = sum(emissions))
+  group_by(country_region) %>%
+  summarise(pass_2019 = sum(pass_2019, na.rm = TRUE),
+            pass_km_2019 = sum(pass_km_2019, na.rm = TRUE),
+            emissions = sum(emissions_2019, na.rm = TRUE))
 
-pass_region$continent <- countrycode(sourcevar = pass_region$country,
-                            origin = "country.name",
-                            destination = "continent")
-pass_region$continent[pass_region$country == "Irish Republic"] <- "Europe"
-pass_region$continent[pass_region$country == "Kosovo"] <- "Europe"
-pass_region$continent[pass_region$country == "Oil Rigs"] <- "Europe"
+pass_region$country_region <- factor(pass_region$country_region, levels = c("Domestic","Spain", "Italy", "Germany", "France", "Ireland","Netherlands","Portugal","Poland", "Greece", "Turkey","Europe Other","USA","Canada","Americas Other","UAE","India","Hong Kong","Singapore", "Asia Other", "Africa","Oceania"))
+                      
 
-top10 <- top_n(pass_region, 10, pass_2018)
-country_keep <- top10$country
-top10 <- top_n(pass_region, 10, pass_km_2018)
-country_keep <- unique(c(country_keep, top10$country))
+```
 
-pass_region1 <- pass_region[pass_region$country %in% country_keep,]
-pass_region2 <- pass_region[!pass_region$country %in% country_keep,]
 
-pass_region2 <- pass_region2 %>%
-  group_by(continent) %>%
-  summarise(pass_2018 = sum(pass_2018),
-            pass_km_2018 = sum(pass_km_2018),
-            emissions = sum(emissions))
+```{r sankey}
 
-pass_region1$area <- pass_region1$country
-pass_region2$area <- paste0(pass_region2$continent)
-pass_region1 <- pass_region1[,c("area","pass_2018","pass_km_2018", "emissions")]
-pass_region2 <- pass_region2[,c("area","pass_2018","pass_km_2018", "emissions")]
-pass_region <- rbind(pass_region1, pass_region2)
+if(FALSE){
+  library(ggsankey)  
+  
+  df <- as.data.frame(pass_region)
+  row.names(df) <- df$country_region
+  df$country_region <- NULL
+  df$pass_2019 <- df$pass_2019 / max(df$pass_2019) * 100
+  df$pass_km_2019 <- df$pass_km_2019 / max(df$pass_km_2019) * 100
+  df$emissions <- df$emissions / max(df$emissions) * 100
+  
+  df2 <- df %>%
+  make_long(pass_2019,pass_km_2019,emissions)
+  
+  
+  foo <- mtcars %>%
+  make_long(cyl, vs, am, gear, carb)
+  
+  ggplot(foo, aes(x = x, 
+               next_x = next_x, 
+               node = node, 
+               next_node = next_node,
+               fill = factor(node))) +
+  geom_sankey()
 
-pass_dom <- pass_od[pass_od$airport2_country == "United Kingdom", ]
-pass_dom <- pass_dom[!is.na(pass_dom$X2018),]
-pass_dom <- data.frame(area = "UK Domestic", 
-                       pass_2018 = sum(pass_dom$X2018), 
-                       pass_km_2018 = sum(pass_dom$pass_km_2018),
-                       emissions = sum(pass_dom$emissions))
+  
+  ggplot(df2, aes(x = x, 
+               next_x = next_x, 
+               node = node, 
+               next_node = next_node,
+               fill = factor(x))) +
+  geom_sankey(flow.alpha = .6)
+  
+  
+  ggplot(pass_region, aes(node=name, x=value,
+                        fill = country_region)) +
+  geom_sankey() +
+  labs(fill = "Country or Region")
+  
+}
 
-pass_region <- rbind(pass_region, pass_dom)
 
-pass_region <- pivot_longer(pass_region, cols = c("pass_2018","pass_km_2018","emissions"), names_to = "var", values_to = "count")
-pass_region$area[pass_region$area == "United States of America"] <- "USA"
-pass_region$area[pass_region$area == "United Arab Emirates"] <- "UAE"
-pass_region$area[pass_region$area == "Irish Republic"] <- "Ireland"
-pass_region$area[pass_region$area == "Europe"] <- "Europe Other"
-pass_region$area[pass_region$area == "Asia"] <- "Asia Other"
-pass_region$area[pass_region$area == "Americas"] <- "Americas Other"
 
-pass_region$area <- factor(pass_region$area, 
-                           levels = c("Spain","Italy","Germany","France","Ireland",
-                                     "Netherlands","Portugal","Poland","Greece","Turkey",
-                                     "Europe Other",
-                                     "USA","Canada","Americas Other",
-                                     "UAE","India","Hong Kong","Singapore",
-                                     "Asia Other",
-                                     "Oceania",
-                                     "Africa",
-                                     "UK Domestic"))
 ```
 
 
 ```{r int_pass_pie_plot, echo=FALSE}
-
-pass_region$var <- factor(pass_region$var, levels = c("pass_2018", "pass_km_2018", "emissions"))
-ggplot(pass_region, aes(x=var, y=count, fill = area)) +
+pass_region <- pivot_longer(pass_region, cols = c("pass_2019", "pass_km_2019", "emissions"))
+pass_region$name <- factor(pass_region$name, levels = c("pass_2019", "pass_km_2019", "emissions"))
+ggplot(pass_region, aes(x=name, y=value, fill = country_region)) +
   geom_col(position = "fill", colour="black") +
   coord_polar("y", start=0) +
+  scale_x_discrete(labels = c("Passengers", "Passenger km", "Emissions")) +
   theme(axis.title.x=element_blank(),
        axis.text.x=element_blank(),
        axis.ticks.x=element_blank(),
@@ -198,29 +172,189 @@ ggplot(pass_region, aes(x=var, y=count, fill = area)) +
        panel.grid.minor = element_blank(),
        panel.background = element_blank(),
        axis.line = element_blank()) +
-  scale_fill_manual(values=c("#a50026","#d73027","#f46d43","#fdae61","#fee090",
+  scale_fill_manual(values=c("#4d4d4d","#a50026","#d73027","#f46d43","#fdae61","#fee090",
+                             "#ffffbf","#e0f3f8","#abd9e9","#74add1","#4575b4",
+                             "#313695",
+                             "#2ca25f","#99d8c9","#e5f5f9",
+                             "#810f7c","#8856a7","#8c96c6","#9ebcda",
+                             "#bfd3e6",
+                             "#f4cae4",
+                             "#e6f5c9")) +
+  labs(fill = "Country or Region")
+  ggsave("../../plots/passengers_and_km_pie.png", dpi = 600)
+  
+  
+ggplot(pass_region, aes(x=name, y=value, fill = country_region)) +
+  geom_col(position = "fill", colour="black") +
+  scale_x_discrete(labels = c("Passengers", "Passenger km", "Emissions")) +
+  theme(axis.title.x=element_blank(),
+       axis.ticks.x=element_blank(),
+       axis.title.y=element_blank(),
+       axis.text.y=element_blank(),
+       axis.ticks.y=element_blank(),
+       panel.grid.minor = element_blank(),
+       panel.background = element_blank(),
+       axis.line = element_blank()) +
+  scale_fill_manual(values=c("#4d4d4d","#a50026","#d73027","#f46d43","#fdae61","#fee090",
+                             "#ffffbf","#e0f3f8","#abd9e9","#74add1","#4575b4",
+                             "#313695",
+                             "#2ca25f","#99d8c9","#e5f5f9",
+                             "#810f7c","#8856a7","#8c96c6","#9ebcda",
+                             "#bfd3e6",
+                             "#f4cae4",
+                             "#e6f5c9")) +
+  guides(fill=guide_legend(ncol =1)) +
+  labs(fill = "Country or Region")
+  ggsave("../../plots/passengers_and_km_bar_2.png", dpi = 600)
+
+#pass_region$order <- paste0(pass_region$country_region," ",pass_region$name)
+pass_region <- pass_region[order(pass_region$name, pass_region$value),]
+pass_region$ordering <- rep(1:22, 3)
+pass_region$name2 <- rep(c("A","B","C"), each = 22)
+
+ggplot(pass_region, aes(x=name2, y=value, 
+                        fill = reorder(country_region,-ordering))) +
+  geom_col(position = "fill", colour="black", data = pass_region %>% filter(name == "pass_2019")) +
+  geom_col(position = "fill", colour="black", data = pass_region %>% filter(name == "pass_km_2019")) +
+  geom_col(position = "fill", colour="black", data = pass_region %>% filter(name == "emissions")) +
+  guides(fill=guide_legend("ordering")) +
+  #scale_x_discrete(limits = pass_region$order) +
+  #coord_polar("y", start=0) +
+  scale_x_discrete(labels = c("Passengers", "Passenger km", "Emissions")) +
+  theme(
+    
+       axis.title.x=element_blank(),
+       axis.ticks.x=element_blank(),
+       axis.title.y=element_blank(),
+       axis.text.y=element_blank(),
+       axis.ticks.y=element_blank(),
+       panel.grid.minor = element_blank(),
+       panel.background = element_blank(),
+       axis.line = element_blank()) +
+  scale_fill_manual(values=c('#a50026','#313695','#2ca25f','#4d4d4d','#d73027',
+                             '#bfd3e6','#f46d43','#fdae61','#fee090','#ffffbf',
+                             '#e0f3f8','#abd9e9','#74add1','#810f7c','#f4cae4',
+                             '#4575b4','#e5f5f9','#99d8c9','#8856a7','#8c96c6',
+                             '#9ebcda','#e6f5c9')) +
+  labs(fill = "Country or Region")
+  ggsave("../../plots/passengers_and_km_bar_sort.png", dpi = 600)
+  
+```
+
+# Total international passengers per year destination
+```{r flights_per_year, echo=FALSE}
+pass_cont <- st_drop_geometry(pass_od)
+
+pass_cont = pass_cont[,c("country_region",
+                         paste0("pass_",as.character(1990:2021)),
+                         paste0("pass_km_",as.character(1990:2021)),
+                         paste0("emissions_",as.character(1990:2021)))]
+names(pass_cont) = c("country_region",
+                         paste0("pass_",as.character(1990:2021)),
+                         paste0("passkm_",as.character(1990:2021)),
+                         paste0("emissions_",as.character(1990:2021)))
+
+pass_cont = pass_cont %>%
+  group_by(country_region) %>%
+  summarise_all(sum, na.rm = TRUE)
+
+pass_cont = pivot_longer(pass_cont, cols = !country_region,
+                         names_to = c(".value","year"),
+                         names_pattern = "([^\\.]*)\\_*(\\d{4})",
+                         values_to = "total")
+# names(pass_cont) = c("country_region","year","passengers" )
+
+pass_cont$year <- as.integer(pass_cont$year)
+pass_cont$country_region <- factor(pass_cont$country_region, 
+                           levels = c("Domestic","Spain","Italy","Germany","France","Ireland",
+                                     "Netherlands","Portugal","Poland","Greece","Turkey",
+                                     "Europe Other",
+                                     "USA","Canada","Americas Other",
+                                     "UAE","India","Hong Kong","Singapore",
+                                     "Asia Other",
+                                     "Oceania",
+                                     "Africa"))
+
+
+ggplot(pass_cont, aes(x = year, y = pass_, fill = country_region)) +
+  geom_area() +
+  scale_fill_manual(values=c("#4d4d4d","#a50026","#d73027","#f46d43","#fdae61","#fee090",
                              "#ffffbf","#e0f3f8","#abd9e9","#74add1","#4575b4",
                              "#313695",
                              "#2ca25f","#99d8c9","#e5f5f9",
                              "#810f7c","#8856a7","#8c96c6","#9ebcda",
                              "#bfd3e6",
                              "#e6f5c9",
-                             "#f4cae4",
-                             "#4d4d4d")) +
+                             "#f4cae4")) +
+  scale_y_continuous(labels = scales::unit_format(unit = "Mln", scale = 1e-6),
+                     expand = c(0, 0)) +
   labs(fill = "Country or Region") +
-  ggsave("passengers_and_km_pie.png", dpi = 600)
+  ylab("Passengers") +
+  xlab("Year") +
+  theme(legend.text = element_text(size=6),
+        legend.key.size = unit(0.6, 'line'),
+        legend.title = element_text(size=8)) +
+  guides(fill = guide_legend(ncol = 1)) +
+  scale_x_continuous(expand = c(0, 0), breaks = seq(1990,2021,2))
+  ggsave("../../plots/passengers_per_year.png", dpi = 600, width = 8, height = 4)
+  
+ 
+ggplot(pass_cont, aes(x = year, y = passkm_, fill = country_region)) +
+  geom_area() +
+  scale_fill_manual(values=c("#4d4d4d","#a50026","#d73027","#f46d43","#fdae61","#fee090",
+                             "#ffffbf","#e0f3f8","#abd9e9","#74add1","#4575b4",
+                             "#313695",
+                             "#2ca25f","#99d8c9","#e5f5f9",
+                             "#810f7c","#8856a7","#8c96c6","#9ebcda",
+                             "#bfd3e6",
+                             "#e6f5c9",
+                             "#f4cae4")) +
+  scale_y_continuous(labels = scales::unit_format(unit = "Bln", scale = 1e-9),
+                     expand = c(0, 0)) +
+  labs(fill = "Country or Region") +
+  ylab("Passengers km") +
+  xlab("Year") +
+  theme(legend.text = element_text(size=6),
+        legend.key.size = unit(0.6, 'line'),
+        legend.title = element_text(size=8)) +
+  guides(fill = guide_legend(ncol = 1)) +
+  scale_x_continuous(expand = c(0, 0), breaks = seq(1990,2021,2))
+  ggsave("../../plots/passenger_km_per_year.png", dpi = 600, width = 8, height = 4)
 
+txt = expression("Emissions (kgCO"[2]~"e)") 
+ggplot(pass_cont, aes(x = year, y = emissions_, fill = country_region)) +
+  geom_area() +
+  scale_fill_manual(values=c("#4d4d4d","#a50026","#d73027","#f46d43","#fdae61","#fee090",
+                             "#ffffbf","#e0f3f8","#abd9e9","#74add1","#4575b4",
+                             "#313695",
+                             "#2ca25f","#99d8c9","#e5f5f9",
+                             "#810f7c","#8856a7","#8c96c6","#9ebcda",
+                             "#bfd3e6",
+                             "#e6f5c9",
+                             "#f4cae4")) +
+  scale_y_continuous(labels = scales::unit_format(unit = "Bln", scale = 1e-9),
+                     expand = c(0, 0)) +
+  labs(fill = "Country or Region") +
+  ylab(txt) +
+  xlab("Year") +
+  theme(legend.text = element_text(size=6),
+        legend.key.size = unit(0.6, 'line'),
+        legend.title = element_text(size=8)) +
+  guides(fill = guide_legend(ncol = 1)) +
+  scale_x_continuous(expand = c(0, 0), breaks = seq(1990,2021,2))
+  ggsave("../../plots/emissions_per_year.png", dpi = 600, width = 8, height = 4)
 
 
 ```
+
+
+
+
+
 ```{r eu_bounds, echo=FALSE}
 dir.create("tmp")
 unzip("../../data/Europe Bounds/ref-countries-2020-20m.geojson.zip", exdir = "tmp")
 bounds <- read_sf("tmp/CNTR_BN_20M_2020_4326.geojson")
-bounds <- bounds[,c("EFTA_FLAG","EU_FLAG")]
-bounds_eu <- bounds[bounds$EFTA_FLAG == "T" |
-                  bounds$EU_FLAG == "T",]
-bounds <- bounds[st_buffer(bounds_eu, 10),]
 unlink("tmp", recursive = TRUE)
 ```
 
@@ -228,18 +362,25 @@ unlink("tmp", recursive = TRUE)
 ## Doemstic and Near based OD
 
 ```{r int_pass, echo=FALSE}
-pass_od <- read_sf("../../data/clean/od_flights_pass_v2.gpkg")
-od_near <- pass_od[pass_od$length_km < 1200,]
-od_near <- od_near[!is.na(od_near$X2018),]
-od_near <- od_near[od_near$X2018 > 0,]
+od_near <- pass_od[pass_od$length_km < 4000,]
+od_near <- od_near[!is.na(od_near$pass_2019),]
+od_near <- od_near[od_near$pass_2019> 10000,]
+od_near <- od_near[order(od_near$pass_2019),]
 
-m5 <- tm_shape(od_near[order(od_near$X2018),]) +
-  tm_lines(col = "X2018", 
-           lwd = "X2018",
-           title.col = "Passengers (2018)",
+box <- st_bbox(od_near)
+box[1] <- -30
+box <- st_as_sfc(box, )
+box <- st_as_sf(box)
+
+m5 <- tm_shape(box) +
+  tm_fill(alpha = 0) +
+  tm_shape(od_near) +
+  tm_lines(col = "pass_2019", 
+           lwd = "pass_2019",
+           title.col = "Passengers (2019)",
            legend.lwd.show = FALSE,
-           style = "pretty",
-           n = 10,
+           style = "fixed",
+           breaks = c(10000,50000,100000,200000,500000,1000000,2000000),
            scale = 3,
            palette = viridisLite::plasma(10, end = 0.31, begin = 0.95)
             ) +
@@ -247,22 +388,74 @@ m5 <- tm_shape(od_near[order(od_near$X2018),]) +
   tm_lines(col = "black") +
   tm_shape(airports[airports$airport %in% od_near$airport1 | airports$airport %in% od_near$airport2,]) +
   tm_dots(col = "black") +
-  tm_legend(position = c(0.01,0.23)) +
+  tm_legend(position = c(0.78,0.8)) +
+  tm_compass(position = c("left","bottom")) +
+  tm_scale_bar(position = c("right","bottom")) +
+  tm_layout(legend.bg.color = "white",
+            legend.bg.alpha = 0.7)
+
+od_bi <- od_near[od_near$length_km < 755,]
+od_bi <- od_bi[od_bi$airport2_country %in% c("United Kingdom","Irish Republic","Isle of Man","Jersey"),]
+
+m5b <- tm_shape(od_bi) +
+  tm_lines(col = "pass_2019", 
+           lwd = "pass_2019",
+           title.col = "Passengers (2019)",
+           legend.lwd.show = FALSE,
+           legend.col.show = FALSE,
+           style = "fixed",
+           breaks = c(10000,50000,100000,200000,500000,1000000,2000000),
+           scale = 3,
+           palette = viridisLite::plasma(10, end = 0.31, begin = 0.95)
+            ) +
+  tm_shape(bounds) +
+  tm_lines(col = "black") +
+  tm_shape(airports[airports$airport %in% od_bi$airport1 | airports$airport %in% od_bi$airport2,]) +
+  tm_dots(col = "black") +
+  tm_scale_bar(position = c("right","top"), breaks = c(0,100,200))
+
+
+xy <- st_bbox(od_near)
+asp2 <- (xy$xmax - xy$xmin)/(xy$ymax - xy$ymin)
+
+w <- 0.34
+h <- asp2 * w
+vp <- grid::viewport(x=0.32, y=0.99, width = w, height=h, just=c("right", "top"))
+
+  
+tmap_save(m5, insets_tm=m5b, insets_vp=vp, filename = "../../plots/near_OD5_inset.png")
+
+```
+
+## All OD
+
+```{r int_pass, echo=FALSE}
+od_all <- pass_od
+od_all <- od_all[!is.na(od_all$pass_2019),]
+od_all <- od_all[od_all$pass_2019> 0,]
+od_all <- od_all[order(od_all$pass_2019),]
+
+m6 <- tm_shape(od_all) +
+  tm_lines(col = "pass_2019", 
+           lwd = "pass_2019",
+           title.col = "Passengers (2019)",
+           legend.lwd.show = FALSE,
+           style = "jenks",
+           n = 10,
+           scale = 3,
+           palette = viridisLite::plasma(10, end = 0.31, begin = 0.95)
+            ) +
+  tm_shape(bounds) +
+  tm_lines(col = "black") +
+  tm_shape(airports[airports$airport %in% od_all$airport1 | airports$airport %in% od_all$airport2,]) +
+  tm_dots(col = "black") +
+  tm_legend(position = c(0.01,0.05)) +
   tm_compass(position = c("left","top")) +
   tm_scale_bar(position = c("right","top"))
   
-tmap_save(m5, filename = "near_OD.png")
+tmap_save(m6, filename = "../../plots/all_OD.png")
 
-
-# Channel Island Summary
-chnl <- c("Guernsey","Jersey")
-pass_channel <- pass_od_dom[pass_od_dom$airport1 %in% chnl | pass_od_dom$airport2 %in% chnl,]
-sum(pass_channel$X2018)
-# flights per person
-sum(pass_channel$X2018) / 170499
 ```
-
-
 
 
 
@@ -327,13 +520,13 @@ ggplot(od_top, aes(x = year, y = passengers, color = route)) +
 
 ```{r cluster_airports, echo=FALSE}
 library(geosphere)
-airports <- read_sf("../../data/clean/airports_clean_second_pass_v2.gpkg")
+#airports <- read_sf("../../data/clean/airports_clean_second_pass_v2.gpkg")
 airports <- as(airports,"Spatial")
 # use the distm function to generate a geodesic distance matrix in meters
 mdist <- distm(airports)
 # cluster all points using a hierarchical clustering approach
 hc <- hclust(as.dist(mdist), method="complete")
-# define the distance threshold, in this case 100 km
+# define the distance threshold, in this case 90 km
 d=90000
 # define clusters based on a tree "height" cutoff "d" and add them to the SpDataFrame
 airports$clust <- cutree(hc, h=d)
@@ -347,53 +540,69 @@ tm_shape(airports[airports$clust %in% airports$clust[duplicated(airports$clust)]
 
 airports_jn <- st_drop_geometry(airports)
 names(airports_jn) <- c("airport","country","clust_from")
-od <- left_join(od, airports_jn, by = c("airport1" = "airport", "airport1_country" = "country"))
+od <- left_join(pass_od, airports_jn, by = c("airport1" = "airport", "airport1_country" = "country"))
 names(airports_jn) <- c("airport","country","clust_to")
 od <- left_join(od, airports_jn, by = c("airport2" = "airport", "airport2_country" = "country"))
+od$route <- paste0(od$airport1," to ",od$airport2)
+od <- st_drop_geometry(od)
 
 od_clust <- od %>%
-  select(-airport1, -airport1_country, -airport2, -airport2_country, -route) %>%
+  select(-airport1, -airport1_country, -airport2, -airport2_country, -route,
+         -length_km, -continent, -length_km_detour, -country_region, -distance_band) %>%
   group_by(clust_from, clust_to) %>%
   summarise_all(sum, na.rm = TRUE)
 
 od_clust$route <- paste0(od_clust$clust_from," to ",od_clust$clust_to)
+od_clust <- as.data.frame(od_clust)
 
 rts <- ""
-for(i in 1990:2018){
-  od_clust <- od_clust[order(od_clust[paste0("X",i)], decreasing = TRUE),]
+for(i in 1990:2021){
+  od_clust <- od_clust[order(od_clust[,paste0("pass_",i)], decreasing = TRUE),]
   rts <- c(rts, od_clust$route[1:10])
 }
 
 rts <- unique(rts)
 rts <- rts[rts != ""]
 od_clus_top <- od_clust[od_clust$route %in% rts, ]
-od_clus_top <- od_clus_top[,c("route", paste0("X",1990:2018))]
+# qtm(airports[airports$clust %in% od_clus_top$clust_from | 
+#                airports$clust %in% od_clus_top$clust_to,])
 
-od_clus_top$route <- gsub("687","London",od_clus_top$route)
-od_clus_top$route <- gsub("59","Dublin",od_clus_top$route)
-od_clus_top$route <- gsub("682","Edinburgh",od_clus_top$route)
-od_clus_top$route <- gsub("84","Amsterdam/Rotterdam",od_clus_top$route)
-od_clus_top$route <- gsub("678","Belfast",od_clus_top$route)
-od_clus_top$route <- gsub("257","New York",od_clus_top$route)
-od_clus_top$route <- gsub("166","Dubai",od_clus_top$route)
-od_clus_top$route <- gsub("683","Glasgow",od_clus_top$route)
-od_clus_top$route <- gsub("86","Barcelona",od_clus_top$route)
-od_clus_top$route <- gsub("92","Madrid",od_clus_top$route)
-od_clus_top$route <- gsub("22","Geneva",od_clus_top$route)
-od_clus_top$route <- gsub("77","Rome",od_clus_top$route)
-od_clus_top$route <- gsub("89","Malaga/Granada",od_clus_top$route)
-od_clus_top$route <- gsub("33","Paris",od_clus_top$route)
-od_clus_top$route <- gsub("46","Frankfurt/Mannheim",od_clus_top$route)
-od_clus_top$route <- gsub("201","Los Angeles",od_clus_top$route)
-od_clus_top$route <- gsub("119","Zurich",od_clus_top$route)
-od_clus_top$route <- gsub("688","Manchester/Liverpool",od_clus_top$route)
-od_clus_top$route <- gsub("7","Brussels/Antwerp",od_clus_top$route)
-od_clus_top$route <- gsub("66","Milan",od_clus_top$route)
+od_clus_top <- od_clus_top[,c("route", paste0("pass_",1990:2021))]
 
-od_clus_top <- pivot_longer(od_clus_top, cols = starts_with("X"))
+
+od_clus_top$route <- gsub("\\b694\\b","London",od_clus_top$route)
+od_clus_top$route <- gsub("\\b60\\b","Dublin",od_clus_top$route)
+od_clus_top$route <- gsub("\\b689\\b","Edinburgh",od_clus_top$route)
+od_clus_top$route <- gsub("\\b85\\b","Amsterdam/Rotterdam",od_clus_top$route)
+od_clus_top$route <- gsub("\\b685\\b","Belfast",od_clus_top$route)
+od_clus_top$route <- gsub("\\b258\\b","New York",od_clus_top$route)
+od_clus_top$route <- gsub("\\b167\\b","Dubai",od_clus_top$route)
+od_clus_top$route <- gsub("\\b690\\b","Glasgow",od_clus_top$route)
+od_clus_top$route <- gsub("\\b87\\b","Barcelona",od_clus_top$route)
+od_clus_top$route <- gsub("\\b93\\b","Madrid",od_clus_top$route)
+od_clus_top$route <- gsub("\\b22\\b","Geneva",od_clus_top$route)
+od_clus_top$route <- gsub("\\b78\\b","Rome",od_clus_top$route)
+od_clus_top$route <- gsub("\\b90\\b","Malaga/Granada",od_clus_top$route)
+od_clus_top$route <- gsub("\\b34\\b","Paris",od_clus_top$route)
+od_clus_top$route <- gsub("\\b47\\b","Frankfurt/Mannheim",od_clus_top$route)
+od_clus_top$route <- gsub("\\b202\\b","Los Angeles",od_clus_top$route)
+od_clus_top$route <- gsub("\\b120\\b","Zurich",od_clus_top$route)
+od_clus_top$route <- gsub("\\b695\\b","Manchester/Liverpool",od_clus_top$route)
+od_clus_top$route <- gsub("\\b7\\b","Brussels/Antwerp",od_clus_top$route)
+od_clus_top$route <- gsub("\\b67\\b","Milan",od_clus_top$route)
+od_clus_top$route <- gsub("\\b728\\b","Lisbon",od_clus_top$route)
+od_clus_top$route <- gsub("\\b124\\b","Istanbul",od_clus_top$route)
+
+table(od_clus_top$route)
+
+od_clus_top <- pivot_longer(od_clus_top, cols = starts_with("pass_"))
 names(od_clus_top) <- c("route","year","passengers")
-od_clus_top$year <- as.numeric(gsub("X","",od_clus_top$year))
+od_clus_top$year <- as.numeric(gsub("pass_","",od_clus_top$year))
 od_clus_top <- od_clus_top[od_clus_top$passengers != 0,]
+
+od_clus_top <- od_clus_top[od_clus_top$route != "London to Zurich",] # One too many for nice plot
+od_clus_top$route <- gsub(" to London","",od_clus_top$route)
+od_clus_top$route <- gsub("London to","",od_clus_top$route)
 
 ggplot(od_clus_top, aes(x = year, y = passengers, color = route)) +
   geom_line() +
@@ -401,10 +610,11 @@ ggplot(od_clus_top, aes(x = year, y = passengers, color = route)) +
   scale_y_continuous(labels = paste0(seq(0,8,2), "M"),
                      breaks = 10^6 * seq(0,8,2)
   ) +
-  facet_wrap(vars(route), labeller = label_wrap_gen(width=30)) +
+  facet_wrap(vars(route), labeller = label_wrap_gen(width=30), ncol = 4) +
   theme(legend.position = "none",
-        strip.text = element_text(size=5)) +
-  ggsave("top_10_routes_clusters.png", width = 6, height = 8)
+        strip.text = element_text(size=6),
+        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+  ggsave("../../plots/top_10_routes_clusters_2021.png", width = 6, height = 8)
 
 ```
 

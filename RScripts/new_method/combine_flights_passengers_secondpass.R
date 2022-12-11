@@ -2,10 +2,11 @@
 library(sf)
 library(dplyr)
 
-pass_od <- readRDS("data/clean/passenger_od_first_clean_v2.Rds")
-flight_od <- readRDS("data/clean/flighs_od_first_clean_v2.Rds")
-airports <- read_sf("data/clean/airports_clean_first_pass_v2.gpkg")
+pass_od <- readRDS("data/clean/passenger_od_first_clean_2021.Rds")
+flight_od <- readRDS("data/clean/flighs_od_first_clean_2021.Rds")
+airports <- read_sf("data/clean/airports_clean_first_pass_2021.gpkg")
 airports <- airports[airports$airport != "Vary (Chalons Sur Marne)",]
+airports_2021 <- readRDS("data/airports_missing_2021.Rds")
 
 airports_extra <- data.frame(airport = c("Tabarka","St Maarten","Sydney Canada","Lanseria","Izmir (Cumaovasi)","Islamabad"),
                              country = c("Tunisia","St Maarten","Canada","Republic of South Africa","Turkey","Pakistan"),
@@ -18,10 +19,13 @@ airports_extra <- data.frame(airport = c("Tabarka","St Maarten","Sydney Canada",
                                st_point(c(72.82565, 33.549083))
                              )))
 names(airports_extra) <- names(airports)
-
+names(airports_2021) <- names(airports)
 
 airports_extra <- st_as_sf(airports_extra, crs = 4326)
+airports_2021 <- st_as_sf(airports_2021, crs = 4326)
 airports <- rbind(airports, airports_extra)
+airports <- rbind(airports, airports_2021)
+names(airports$geom) <- NULL
 
 
 airports$geom[airports$airport == "Alverca"] <- st_point(c(-9.0300999, 38.8833008))
@@ -34,6 +38,8 @@ airports$geom[airports$airport == "Benazir Bhutto"] <- st_point(c(73.099167, 33.
 airports$geom[airports$airport == "Hong Kong"] <- st_point(c(113.9185, 22.30805))
 airports$geom[airports$airport == "Camp Springs (Andrews Afb)"] <- st_point(c(-76.88363, 38.79652))
 airports$geom[airports$airport == "Oil Rigs"] <- st_point(c(0.953009, 58.238252))
+airports$geom[airports$airport == "Dakar"] <- st_point(c(-17.49, 14.739444))
+airports$geom[airports$airport == "Istanbul"] <- st_point(c(28.727778, 41.262222))
 
 tidy_airports <- function(from,to){
   flight_od$airport1[flight_od$airport1 %in% from] <-  to
@@ -159,6 +165,14 @@ tidy_airports("Bali International","Bali")
 tidy_airports("Minot International","Minot")
 tidy_airports("Erbil International","Erbil")
 
+tidy_airports("Jorge Chavez","Lima")
+tidy_airports("Nagoya (Afb)","Nagoya")
+tidy_airports("Calcutta","Kolkata")
+tidy_airports("Medan","Kualanamu")
+tidy_airports("Albert - Bray","Albert - Picardie")
+tidy_airports("Chalons (Vatry)","Chalons Sur Marne")
+tidy_airports("Astana","Nursultan Nazerbayev")
+
 
 pass_od$airport2_country[pass_od$airport2 == "Pristina"] <- "Kosovo"
 pass_od$airport2_country[pass_od$airport2 == "Bahrain"] <- "Bahrain"
@@ -176,6 +190,10 @@ pass_od$airport2_country[pass_od$airport2 == "Isle of Man"] <- "Isle of Man"
 flight_od$airport1_country[flight_od$airport1 == "Isle of Man"] <- "Isle of Man"
 flight_od$airport2_country[flight_od$airport2 == "Isle of Man"] <- "Isle of Man"
 
+pass_od$airport2_country[pass_od$airport2_country == "Zaire"] <- "Democratic Republic of Congo"
+flight_od$airport2_country[flight_od$airport2_country == "Zaire"] <- "Democratic Republic of Congo"
+
+
 
 
 pass_od2 <- pass_od %>%
@@ -186,8 +204,8 @@ flight_od2 <- flight_od %>%
   group_by(airport1,airport1_country,airport2,airport2_country) %>%
   summarise_all(sum, na.rm = TRUE)
 
-pass_od2 <- pass_od2[rowSums(pass_od2[,as.character(1990:2018)]) != 0,]
-flight_od2 <- flight_od2[rowSums(flight_od2[,paste0("flt_",1990:2018)]) != 0,]
+pass_od2 <- pass_od2[rowSums(pass_od2[,as.character(1990:2021)]) != 0,]
+flight_od2 <- flight_od2[rowSums(flight_od2[,paste0("flt_",1990:2021)]) != 0,]
 
 # Check by country
 cnts <- unique(c(pass_od2$airport2_country, flight_od2$airport2_country))
@@ -199,6 +217,8 @@ for(i in 1:length(cnts)){
   message(cnts[i])
   sub_pass <- pass_od2$airport2[pass_od2$airport2_country == cnts[i]]
   sub_flt <- flight_od2$airport2[flight_od2$airport2_country == cnts[i]]
+  
+
   sub_pass <- unique(sub_pass)
   sub_flt <- unique(sub_flt)
   sub_flt <- sub_flt[sub_flt != "Unknown"]
@@ -221,27 +241,34 @@ res <- res[lengths(res) != 0]
 
 
 
-
-
-
-
-
 all_od <- full_join(pass_od2, flight_od2, by= c("airport1","airport1_country","airport2","airport2_country") )
-saveRDS(all_od,"data/clean/pass_flighs_od_v2.Rds")
-saveRDS(pass_od2, "data/clean/passenger_od_second_clean_v2.Rds")
-saveRDS(flight_od, "data/clean/flighs_od_second_clean_v2.Rds")
+saveRDS(all_od,"data/clean/pass_flighs_od_2021.Rds")
+saveRDS(pass_od2, "data/clean/passenger_od_second_clean_2021.Rds")
+saveRDS(flight_od2, "data/clean/flighs_od_second_clean_2021.Rds")
 airports <- airports[!duplicated(airports),]
-write_sf(airports, "data/clean/airports_clean_second_pass_v2.gpkg")
+
+airports <- airports[!duplicated(st_drop_geometry(airports[,c("airport","country")])),]
+write_sf(airports, "data/clean/airports_clean_second_pass_2021.gpkg")
 
 
+stop(" End of code")
 # Check Airport Locations
-ap_miss <- all_od[,c("airport1","airport1_country")]
+ap_miss <- unique(all_od[,c("airport1","airport1_country")])
+ap_miss2 <- unique(all_od[,c("airport2","airport2_country")])
+names(ap_miss2) <- names(ap_miss)
+ap_miss <- rbind(ap_miss, ap_miss2)
+ap_miss <- left_join(ap_miss, airports, by = c("airport1" = "airport", "airport1_country" = "country"))
+ap_miss <- ap_miss[st_is_empty(ap_miss$geom),]
+ap_miss <- ap_miss[ap_miss$airport1 != "Unknown",]
+pass_total <- pass_od2 %>%
+  group_by(airport2, airport2_country) %>%
+  summarise(total = sum(`1990`,`1991`,`1992`,`1993`,`1994`,`1995`,`1996`,`1997`,`1998`,`1999`,`2000`,`2001`,`2002`,`2003`,`2004`,`2005`,
+                        `2006`,`2007`,`2008`,`2009`,`2010`,`2011`,`2012`,`2013`,`2014`,`2015`,`2016`,`2017`,`2018`,`2019`,`2020`,`2021`, na.rm = TRUE))
+ap_miss <- left_join(ap_miss, pass_total, by = c("airport1" = "airport2", "airport1_country" = "airport2_country"))
 
+#saveRDS(ap_miss,"data/airports_missing_2021.Rds")
 
-
-
-
-all_missing <- all_od[is.na(all_od$`2018`) | is.na(all_od$flt_2018),]
+all_missing <- all_od[is.na(all_od$`2019`) | is.na(all_od$flt_2019),]
 all_missing <- all_missing[with(all_missing, order(airport2_country, airport2)),]
 all_missing <- all_missing[all_missing$airport1 != "Unknown",]
 all_missing <- all_missing[all_missing$airport2 != "Unknown",]
@@ -272,9 +299,9 @@ ap_all <- ap_all[ap_all$airport2_country != "Oil Rigs",]
 ap_all <- unique(ap_all)
 
 # check for odd results
-all_missing_flights <- all_od[is.na(all_od$flt_2018), ]
-foo <- as.data.frame(table(all_od$airport1[is.na(all_od$flt_2018)]))
-bar <- as.data.frame(table(all_od$airport1[!is.na(all_od$flt_2018)]))
+all_missing_flights <- all_od[is.na(all_od$flt_2020), ]
+foo <- as.data.frame(table(all_od$airport1[is.na(all_od$flt_2020)]))
+bar <- as.data.frame(table(all_od$airport1[!is.na(all_od$flt_2020)]))
 table(flight_od2$airport1)
 
 all_missing_flights <- all_missing_flights[all_missing_flights$airport1 %in% 
@@ -293,10 +320,10 @@ all_missing_flights <- all_missing_flights %>%
             count = n())
 
 all_missing_passengers <- left_join(flight_od2, pass_od2 , by= c("airport1","airport1_country","airport2","airport2_country") )
-all_missing_passengers <- all_missing_passengers[is.na(all_missing_passengers$`2018`), ]
+all_missing_passengers <- all_missing_passengers[is.na(all_missing_passengers$`2020`), ]
 all_missing_passengers <- all_missing_passengers %>%
   group_by(airport2, airport2_country) %>%
-  summarise(total = sum(flt_2018, flt_2017, flt_2016,flt_2015,flt_2014,
+  summarise(total = sum(flt_2021,flt_2020,flt_2019,flt_2018, flt_2017, flt_2016,flt_2015,flt_2014,
                         flt_2013, flt_2012,flt_2011,flt_2010,flt_2009,
                         flt_2008, flt_2007,flt_2006,flt_2005,flt_2004,
                         flt_2003, flt_2002,flt_2001,flt_2000,flt_1999,

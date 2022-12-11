@@ -1,4 +1,4 @@
-flight_od <- readRDS("data/clean/flights_od.Rds")
+flight_od <- readRDS("data/clean/flights_od_2021.Rds")
 
 # Flight has an AB BA problem in domestic data
 flight_od$key <- stplanr::od_id_szudzik(flight_od$airport1, flight_od$airport2)
@@ -37,7 +37,11 @@ flight_od <- flight_od %>%
             flt_2015 = max(c(flt_2015,0), na.rm = TRUE),
             flt_2016 = max(c(flt_2016,0), na.rm = TRUE),
             flt_2017 = max(c(flt_2017,0), na.rm = TRUE),
-            flt_2018 = max(c(flt_2018,0), na.rm = TRUE))
+            flt_2018 = max(c(flt_2018,0), na.rm = TRUE),
+            flt_2019 = max(c(flt_2019,0), na.rm = TRUE),
+            flt_2020 = max(c(flt_2020,0), na.rm = TRUE),
+            flt_2021 = max(c(flt_2021,0), na.rm = TRUE)
+            )
 
 flight_od$key <- NULL
 
@@ -62,5 +66,4 @@ flight_od$airport2_country[flight_od$airport2 == "Guernsey"] <- "Guernsey"
 flight_od$airport1_country[flight_od$airport1 == "Isle of Man"] <- "Isle of Man"
 flight_od$airport2_country[flight_od$airport2 == "Isle of Man"] <- "Isle of Man"
 
-
-saveRDS(flight_od, "data/clean/flights_od_prepped.Rds")
+saveRDS(flight_od, "data/clean/flights_od_prepped_2021.Rds")
