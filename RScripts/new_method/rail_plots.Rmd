@@ -423,6 +423,7 @@ places$colour[places$name %in% c("London","Edinburgh","Paris","Amsterdam","San S
 
 newlines <- read_sf("../../data/isochrones/lines.gpkg")
 newlines$width <- ifelse(newlines$status == "construction",2,1)
+newlines <- sf::st_make_valid(newlines)
 
 # iso_final$zone <- as.character(c(1,2,2,3,3,4,3,4,4,2,3))
 # m3 <- tm_shape(iso_final) +
@@ -465,7 +466,7 @@ m2 <- tm_shape(bounds, bbox = bbox) +
 tmap_save(m2, filename = "../../plots/rail_map.png")
 
 # Isochrone map
-
+tmap_options(check.and.fix = TRUE)
 png("rail_isochrones_hours2.png", width = 2186, height = 2016)
 tm_shape(iso_final) +
   tm_fill(col = "hours", breaks = seq(0, 24, 2), palette = viridisLite::viridis(12)[12:1],
@@ -649,7 +650,7 @@ ai_plot <- pivot_longer(ai_plot, cols = c("pass_2019_TRUE","pass_2019_FALSE"),
                         names_prefix = "pass_2019_")
 ai_plot$pass_2019[is.na(ai_plot$pass_2019)] <- 0
 
-origin_cols <- get_brewer_pal("Dark2", 2)
+origin_cols <- tmaptools::get_brewer_pal("Dark2", 2)
 
 grobs <- lapply(split(ai_plot, ai_plot$id), function(x) {
   ggplotGrob(ggplot(x, aes(x="", y=pass_2019, fill=in_study)) +
@@ -684,7 +685,7 @@ m4 <- tm_shape(airports_all) +
              size = "size",
              #sizes.legend=c(55139,5128903,5911193,7580889230), 
              scale=0.5,
-             border.lwd = NA,
+             border.lwd = 0,
              legend.shape.show = FALSE,
              legend.size.show = FALSE,
              legend.size.is.portrait = TRUE, 
@@ -750,29 +751,34 @@ write.csv(airports_summary,"../../data/study_area_summary_v4.csv")
 ## Rail Emissions
 
 ```{r rail_emissions, echo=FALSE}
-pass_od_rail <- read_sf("../../data/clean/od_emissions_2021_rail.gpkg")
+pass_od_rail <- read_sf("../../data/clean/od_emissions_2021_rail_newkgco2.gpkg")
 pass_od_rail <- st_drop_geometry(pass_od_rail)
-pass_od_rail <- pass_od_rail[,c("airport1","airport1_country","airport2","airport2_country","length_rail_km")]
+pass_od_rail <- pass_od_rail[,c("airport1","airport1_country","airport2","airport2_country","length_rail_km","kgco2_railpsngr")]
 
 pass_od <- left_join(pass_od, pass_od_rail, by = c("airport1","airport1_country","airport2","airport2_country"))
 pass_od$pass_km_rail_2019 = pass_od$length_rail_km * pass_od$pass_2019
-pass_od$emissions_rail_2019 = pass_od$pass_km_rail_2019 * 0.00446 #BEIS KgCO2e 2021 per pass km
+#pass_od$emissions_rail_2019 = pass_od$pass_km_rail_2019 * 0.00446 #BEIS KgCO2e 2021 per pass km
+pass_od$emissions_rail_2019 = pass_od$pass_2019 * pass_od$kgco2_railpsngr 
+#pass_od$emissions_rail_2019_old = pass_od$pass_km_rail_2019 * 0.00446 #BEIS KgCO2e 2021 per pass km
 
-
+# plot(pass_od$emissions_rail_2019_old, pass_od$emissions_rail_2019, xlim = c(0,3e7), ylim=c(0,3e7))
+# abline(0,1)
 
 
 ```
 
 ```{r rail_rnet, echo=FALSE}
-rail_sf <- read_sf("../../data/clean/od_emissions_2021_rail.gpkg")
-rail_sf_geom <- readRDS("../../data/clean/rail_routes.Rds")
+rail_sf <- read_sf("../../data/clean/od_emissions_2021_rail_newkgco2.gpkg")
+rail_sf_geom <- readRDS("../../data/clean/rail_routes_newkgco2.Rds")
 rail_sf <- st_drop_geometry(rail_sf)
-summary(rail_sf$length_rail_km == rail_sf_geom$length_rail_km)
-rail_sf$geometry <- rail_sf_geom$x
+rail_sf_geom = rail_sf_geom[,c("route")]
+
+rail_sf$route = paste0(rail_sf$airport1,"_",rail_sf$airport1_country,"_", rail_sf$airport2,"_", rail_sf$airport2_country)
+
+rail_sf = left_join(rail_sf, as.data.frame(rail_sf_geom), by = "route")
 rail_sf = st_as_sf(rail_sf)
 
-
-rail_sf <- left_join(rail_sf, 
+rail_sf <- left_join(rail_sf,
                      st_drop_geometry(pass_od[,c("airport1","airport1_country","airport2","airport2_country","pass_2019")]),
                      by = c("airport1","airport1_country","airport2","airport2_country")
                      )
