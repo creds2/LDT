@@ -1,0 +1,166 @@
+---
+title: "Untitled"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+## Including Code
+
+Headline Results
+
+```{r load, echo=FALSE}
+library(sf)
+library(tmap)
+library(dplyr)
+library(countrycode)
+library(tidyr)
+library(ggplot2)
+library(furrr)
+
+pass_od <- read_sf("../../data/clean/od_emissions_2021.gpkg")
+airports <- read_sf("../../data/clean/airports_clean_second_pass_2021.gpkg")
+
+
+
+```
+
+```{r eu_bounds, echo=FALSE}
+dir.create("tmp")
+unzip("../../data/Europe Bounds/ref-countries-2020-20m.geojson.zip", exdir = "tmp")
+bounds <- read_sf("tmp/CNTR_BN_20M_2020_4326.geojson")
+unlink("tmp", recursive = TRUE)
+```
+
+## Rail Emissions
+
+```{r rail_emissions, echo=FALSE}
+pass_od_rail <- read_sf("../../data/clean/od_emissions_2021_rail.gpkg")
+pass_od_rail <- st_drop_geometry(pass_od_rail)
+pass_od_rail <- pass_od_rail[,c("airport1","airport1_country","airport2","airport2_country","length_rail_km")]
+
+pass_od <- left_join(pass_od, pass_od_rail, by = c("airport1","airport1_country","airport2","airport2_country"))
+pass_od$pass_km_rail_2019 = pass_od$length_rail_km * pass_od$pass_2019
+pass_od$emissions_rail_2019 = pass_od$pass_km_rail_2019 * 0.00446 #BEIS KgCO2e 2021 per pass km
+
+summary(pass_od$emissions_rail_2019 / pass_od$emissions_2019)
+```
+
+```{r rail_rnet, echo=FALSE}
+rail_sf <- read_sf("../../data/clean/od_emissions_2021_rail.gpkg")
+rail_sf_geom <- readRDS("../../data/clean/rail_routes.Rds")
+rail_sf <- st_drop_geometry(rail_sf)
+summary(rail_sf$length_rail_km == rail_sf_geom$length_rail_km)
+rail_sf$geometry <- rail_sf_geom$x
+rail_sf = st_as_sf(rail_sf)
+
+
+rail_sf <- left_join(rail_sf, 
+                     st_drop_geometry(pass_od[,c("airport1","airport1_country","airport2","airport2_country","pass_2019")]),
+                     by = c("airport1","airport1_country","airport2","airport2_country")
+                     )
+rail_sf$pass_2019[is.na(rail_sf$pass_2019)] = 0
+
+rnet = stplanr::overline2(rail_sf, attrib = "pass_2019")
+rnet = rnet[rnet$pass_2019 > 0,]
+rnet = rnet[order(rnet$pass_2019),]
+summary(rnet$pass_2019)
+
+```
+```{r rnet_plot, echo=FALSE}
+rnet$pass_mill = rnet$pass_2019 / 1e6
+m1 <- tm_shape(rnet) +
+  tm_lines("pass_mill", lwd = 3, palette = "-viridis",
+           breaks = c(0,5,10,50,80,102),
+           title.col = "Passengers\n(millions)"
+           ) +
+  tm_shape(bounds) +
+  tm_lines("grey", lwd = 1)
+tmap_save(m1, filename = "rail_rnet.png")
+```
+
+## All OD
+
+```{r summary_table, echo=FALSE}
+
+airports_summary <- st_drop_geometry(pass_od)
+airports_summary$study_route <- !is.na(airports_summary$length_rail_km)
+
+airports_summary <- airports_summary %>%
+  group_by(airport2_country, study_route) %>%
+  summarise(pass_2019 = sum(pass_2019, na.rm = TRUE),
+            pass_km_2019 = sum(pass_km_2019, na.rm = TRUE),
+            emissions_2019 = sum(emissions_2019, na.rm = TRUE),
+            emissions_rail_2019 = sum(emissions_rail_2019, na.rm = TRUE))
+airports_summary$pass_2019[airports_summary$airport2_country == "Slovenia" & airports_summary$pass_2019 == 0] <- NA
+
+airports_summary <- pivot_wider(airports_summary, id_cols = c("airport2_country"),
+                   values_from = c("pass_2019","pass_km_2019","emissions_2019","emissions_rail_2019"),
+                   names_from = "study_route")
+
+airports_summary$region <- countrycode::countrycode(sourcevar = airports_summary$airport2_country,
+                      origin = "country.name",
+                      destination = "continent")
+
+airports_summary$region[airports_summary$airport2_country %in% c("Virgin Islands (U.s.a)")] <- "Americas"
+airports_summary$region[airports_summary$airport2_country %in% c("Irish Republic", "Kosovo")] <- "Europe"
+airports_summary$region[airports_summary$airport2_country %in% c("Ascension Island","Somali Republic")] <- "Africa"
+
+
+airports_summary1 <- airports_summary[!is.na(airports_summary$pass_2019_TRUE),]
+airports_summary2 <- airports_summary[is.na(airports_summary$pass_2019_TRUE),]
+
+airports_summary2$region2 <- ifelse(airports_summary2$region == "Europe","Europe","World")
+airports_summary2$region2 <- ifelse(airports_summary2$airport2_country == "Irish Republic","Irish Republic",airports_summary2$region2)
+airports_summary2$region2 <- ifelse(airports_summary2$airport2_country == "Portugal","Portugal",airports_summary2$region2)
+airports_summary2$region2 <- ifelse(airports_summary2$airport2_country == "Greece","Greece",airports_summary2$region2)
+
+airports_summary2 <- airports_summary2 %>%
+  group_by(region2) %>%
+  summarise(pass_2019_TRUE = sum(pass_2019_TRUE, na.rm = TRUE),
+            pass_km_2019_TRUE = sum(pass_km_2019_TRUE, na.rm = TRUE),
+            emissions_2019_TRUE = sum(emissions_2019_TRUE, na.rm = TRUE),
+            pass_2019_FALSE = sum(pass_2019_FALSE, na.rm = TRUE),
+            pass_km_2019_FALSE = sum(pass_km_2019_FALSE, na.rm = TRUE),
+            emissions_2019_FALSE = sum(emissions_2019_FALSE, na.rm = TRUE),
+            emissions_rail_2019_TRUE = sum(emissions_rail_2019_TRUE, na.rm = TRUE),
+            emissions_rail_2019_FALSE = sum(emissions_rail_2019_FALSE, na.rm = TRUE))
+
+airports_summary1$region <- NULL
+names(airports_summary1) <- c("region2","pass_2019_FALSE","pass_2019_TRUE","pass_km_2019_FALSE", "pass_km_2019_TRUE","emissions_2019_FALSE","emissions_2019_TRUE","emissions_rail_2019_FALSE","emissions_rail_2019_TRUE")
+airports_summary2 <- airports_summary2[,names(airports_summary1)]
+
+airports_summary <- rbind(airports_summary1, airports_summary2)
+
+write.csv(airports_summary,"../../data/study_area_summary_v4_with_rail.csv")
+
+```
+
+
+
+
+```{r rail_route_plots, echo=FALSE}
+bbox <- st_as_sfc(st_bbox(iso_final))
+mrail <- tm_shape(rnet, bbox = bbox) +
+  tm_lines(col = "pass_2019", 
+           style = "fixed", 
+           breaks = c(0,5e5,1e6,5e6,10e6,50e6,105e6),
+           palette = "viridis",
+           lwd = 2) +
+  tm_shape(bounds) +
+  tm_lines() +
+  tm_layout(legend.position = c(0.05,0.3),
+            frame = FALSE, outer.margins = 0) +
+  tm_shape(airports) +
+  tm_dots()
+tmap_save(mrail, filename = "../../plots/rail_routes.png")
+
+
+
+```
+
+

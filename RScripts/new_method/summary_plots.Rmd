@@ -603,6 +603,9 @@ od_clus_top <- od_clus_top[od_clus_top$passengers != 0,]
 od_clus_top <- od_clus_top[od_clus_top$route != "London to Zurich",] # One too many for nice plot
 od_clus_top$route <- gsub(" to London","",od_clus_top$route)
 od_clus_top$route <- gsub("London to","",od_clus_top$route)
+od_clus_top$route <- trimws(od_clus_top$route)
+od_clus_top <- od_clus_top[order(od_clus_top$route),]
+
 
 ggplot(od_clus_top, aes(x = year, y = passengers, color = route)) +
   geom_line() +
@@ -613,8 +616,10 @@ ggplot(od_clus_top, aes(x = year, y = passengers, color = route)) +
   facet_wrap(vars(route), labeller = label_wrap_gen(width=30), ncol = 4) +
   theme(legend.position = "none",
         strip.text = element_text(size=6),
-        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
-  ggsave("../../plots/top_10_routes_clusters_2021.png", width = 6, height = 8)
+        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  xlab("Year") +
+  ylab("Passengers")
+  ggsave("../../plots/top_10_routes_clusters_2021b.png", width = 6, height = 8)
 
 ```
 

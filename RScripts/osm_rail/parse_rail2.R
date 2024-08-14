@@ -50,6 +50,33 @@ rail = rail[,c("name", "gauge", "electrified",
 
 sf::write_sf(rail,"data/europe-rail.gpkg")
 
+
+
+rail = oe_read("D:/Big Data/europe-rail.osm.pbf", 
+               extra_tags = c("railway", "usage","gauge", "electrified",
+                              "service", "operator", "voltage",
+                              "frequency","ref", "maxspeed", "importance",
+                              "highspeed"))
+
+
+rail = rail[,c("name","railway","usage", "gauge", "electrified",
+               "service", "operator", "voltage",
+               "frequency","ref", "maxspeed", "importance",
+               "highspeed")]
+rail = rail[rail$railway %in% c("rail"),]
+rail <- rail[rail$usage %in% c("main",NA),]
+
+rail = rail[,c("name", "gauge", "electrified",
+               "service", "operator", "voltage",
+               "frequency","ref", "maxspeed", "importance",
+               "highspeed")]
+
+sf::write_sf(rail,"data/europe-rail.gpkg")
+
+
+
+
+
 library(tmap)
 tmap_mode("view")
 

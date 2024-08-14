@@ -231,6 +231,8 @@ write_sf(iso_final, "../../data/isochrones/iso_combined.geojson", delete_dsn = T
 }
 
 ```
+
+
 ```{r iso_funcs, echo=FALSE}
 polygons2rings <- function(poly, rank = poly$dists){
   poly <- poly[order(-rank),]
@@ -334,6 +336,14 @@ iso_stras <- read_sf("../../data/isochrones/8700023_Strasborg.geojson")
 iso_amst <- read_sf("../../data/isochrones/8400058_Amsterdam.geojson")
 iso_saar <- read_sf("../../data/isochrones/8000323_Saarbucken.geojson")
 
+#Brussles
+iso_brus_60 <- read_sf("../../data/isochrones/brussels60.geojson")
+iso_brus_120 <- read_sf("../../data/isochrones/brussels120.geojson")
+iso_brus_180 <- read_sf("../../data/isochrones/brussels180.geojson")
+iso_brus_240 <- read_sf("../../data/isochrones/brussels240.geojson")
+iso_brus_300 <- read_sf("../../data/isochrones/brussels300.geojson")
+iso_brus <- rbind(iso_brus_300,iso_brus_240,iso_brus_180, iso_brus_120, iso_brus_60)
+
 iso_cheb <- read_sf("../../data/isochrones/5400004_cheb.geojson")
 iso_cop <- read_sf("../../data/isochrones/8601309_copenhagen.geojson")
 iso_poz <- read_sf("../../data/isochrones/5100081_poznan.geojson")
@@ -363,13 +373,15 @@ iso_wien$duration <- iso_wien$duration + 840
 iso_cheb$duration <- iso_cheb$duration + 660
 iso_cop$duration <- iso_cop$duration + 840
 iso_poz$duration <- iso_poz$duration + 720
+iso_brus$duration <- iso_brus$duration + 120 # Brussle 2h away
 
 iso_lyon <- st_make_valid(iso_lyon)
 iso_barc <- st_make_valid(iso_barc)
 iso_Koln <- st_make_valid(iso_Koln)
 iso_turin <- st_make_valid(iso_turin)
+iso_brus <- st_make_valid(iso_brus)
 
-iso_final <- rbind(iso_lond, iso_paris_nore, iso_lyon, iso_poit, iso_stras, iso_amst, iso_saar, iso_edin, iso_Koln,iso_barc, iso_turin, iso_san, iso_mad, iso_vero, iso_stut,iso_frank,
+iso_final <- rbind(iso_lond, iso_brus, iso_paris_nore, iso_lyon, iso_poit, iso_stras, iso_amst, iso_saar, iso_edin, iso_Koln,iso_barc, iso_turin, iso_san, iso_mad, iso_vero, iso_stut,iso_frank,
              iso_munich,iso_ber,iso_ham, iso_wien, iso_cheb, iso_cop, iso_poz)
 iso_final <- iso_final[order(iso_final$duration, decreasing = TRUE),]
 iso_final$hours <- iso_final$duration / 60
@@ -389,6 +401,10 @@ write_sf(iso_final, "../../data/isochrones/iso_hours.geojson", delete_dsn = TRUE
 }
 
 ```
+
+
+
+
 
 ```{r isoplot, echo=FALSE}
 
@@ -426,6 +442,30 @@ newlines$width <- ifelse(newlines$status == "construction",2,1)
 # tmap_save(m3, filename = "rail_isochrones_steps.png")
 
 tmap_mode("plot")
+
+# Simple Map of Europe
+#png("../../plots/rail_map.png", width = 2186, height = 2016)
+m2 <- tm_shape(bounds, bbox = bbox) +
+  tm_lines(col = "#424242", lwd = 0.5) +
+  tm_shape(rail) +
+  tm_lines(lwd = "maxspeed", alpha = 1, scale = 5, col = "red",
+           title.lwd = "Line speed\n(kph)",   legend.lwd.is.portrait = TRUE) +
+  tm_shape(newlines) +
+  tm_lines(col = "black", lty=1, lwd = "width", legend.lwd.show = FALSE, scale = 5) +
+  tm_shape(places) +
+  tm_dots(size = 0.01) +
+  tm_text("name", just = "bottom", size = 0.8, xmod = 0.5, col = "#403d3d") +
+  tm_layout(legend.position = c(0.80,0.01),
+            legend.bg.color = "white",
+            legend.bg.alpha = 0.5,
+            bg.color = NA,
+            legend.text.size = 1,
+            legend.title.size=1,
+            frame = TRUE)
+tmap_save(m2, filename = "../../plots/rail_map.png")
+
+# Isochrone map
+
 png("rail_isochrones_hours2.png", width = 2186, height = 2016)
 tm_shape(iso_final) +
   tm_fill(col = "hours", breaks = seq(0, 24, 2), palette = viridisLite::viridis(12)[12:1],
@@ -556,28 +596,36 @@ airports_inter$pass_2019_FALSE[is.na(airports_inter$pass_2019_FALSE)] <- 0
 airports_inter$pass_2019_total <- airports_inter$pass_2019_TRUE + airports_inter$pass_2019_FALSE
 
 sf_use_s2(TRUE)
-airports_inter_zone <- airports_inter[st_buffer(iso_single, 400000),]
+airports_inter_zone <- airports_inter[st_buffer(iso_single, 3000000),]
 airports_inter_zone <- st_join(airports_inter_zone, iso_final)
 
-m5 <- tm_shape(airports_inter_zone) +
+bbox <- st_bbox(st_buffer(iso_single, 1000000))
+
+airports_dom$pass_2019_total <- rowSums(st_drop_geometry(airports_dom[,c("pass_2019_TRUE","pass_2019_FALSE")]), na.rm = TRUE)
+airports_inter_zone$pass_2019_total_mln <- airports_inter_zone$pass_2019_total / 1e6
+
+m5 <- tm_shape(airports_inter_zone, bbox = bbox) +
   tm_dots(col = "hours",
-             size = "pass_2019_total",
-          breaks = seq(0, 24, 2), palette = viridisLite::viridis(12)[12:1],
-          colorNA = "#413f3e",
-             scale=3,
+             size = "pass_2019_total_mln",
+             breaks = seq(0, 24, 2), palette = viridisLite::viridis(12)[12:1],
+             colorNA = "#413f3e",
+             scale=2.5,
              border.lwd = NA,
              legend.show  = FALSE,
              legend.shape.show = FALSE,
              legend.size.show = TRUE,
-             legend.size.is.portrait = FALSE,
-          title.size="Passengers to/from the UK in 2019") +
+             legend.size.is.portrait = TRUE,
+          title.size="Passengers\nto/from UK\nmillions\n(2019)") +
   tm_layout(legend.bg.color = "white", 
             legend.bg.alpha = 0.5) +
-  tm_shape(airports_dom[!is.na(airports_dom$pass_2019_TRUE),]) +
-  tm_dots(shape = 18, scale = 3) +
+  #tm_shape(airports_dom[!is.na(airports_dom$pass_2019_TRUE),]) +
+  tm_shape(airports_dom[airports_dom$pass_2019_total > 0,]) +
+  tm_dots(shape = 18, scale = 2, col = "blue") +
   tm_shape(bounds) +
-  tm_lines()
-tmap_save(m5, filename = "../../plots/airports_study_area_Inter2.png")
+  tm_lines() +
+  tm_layout(legend.position = c(0.05,0.3),
+            frame = FALSE, outer.margins = 0)
+tmap_save(m5, filename = "../../plots/airports_study_area_Inter4.png")
 
 ```
 
@@ -657,6 +705,7 @@ airports_summary <- airports_summary %>%
   summarise(pass_2019 = sum(pass_2019, na.rm = TRUE),
             pass_km_2019 = sum(pass_km_2019, na.rm = TRUE),
             emissions_2019 = sum(emissions_2019, na.rm = TRUE))
+airports_summary$pass_2019[airports_summary$airport2_country == "Slovenia" & airports_summary$pass_2019 == 0] <- NA
 
 airports_summary <- pivot_wider(airports_summary, id_cols = c("airport2_country"),
                    values_from = c("pass_2019","pass_km_2019","emissions_2019"),
@@ -670,11 +719,17 @@ airports_summary$region[airports_summary$airport2_country %in% c("Virgin Islands
 airports_summary$region[airports_summary$airport2_country %in% c("Irish Republic", "Kosovo")] <- "Europe"
 airports_summary$region[airports_summary$airport2_country %in% c("Ascension Island","Somali Republic")] <- "Africa"
 
+
 airports_summary1 <- airports_summary[!is.na(airports_summary$pass_2019_TRUE),]
 airports_summary2 <- airports_summary[is.na(airports_summary$pass_2019_TRUE),]
 
+airports_summary2$region2 <- ifelse(airports_summary2$region == "Europe","Europe","World")
+airports_summary2$region2 <- ifelse(airports_summary2$airport2_country == "Irish Republic","Irish Republic",airports_summary2$region2)
+airports_summary2$region2 <- ifelse(airports_summary2$airport2_country == "Portugal","Portugal",airports_summary2$region2)
+airports_summary2$region2 <- ifelse(airports_summary2$airport2_country == "Greece","Greece",airports_summary2$region2)
+
 airports_summary2 <- airports_summary2 %>%
-  group_by(region) %>%
+  group_by(region2) %>%
   summarise(pass_2019_TRUE = sum(pass_2019_TRUE, na.rm = TRUE),
             pass_km_2019_TRUE = sum(pass_km_2019_TRUE, na.rm = TRUE),
             emissions_2019_TRUE = sum(emissions_2019_TRUE, na.rm = TRUE),
@@ -683,21 +738,72 @@ airports_summary2 <- airports_summary2 %>%
             emissions_2019_FALSE = sum(emissions_2019_FALSE, na.rm = TRUE))
 
 airports_summary1$region <- NULL
-names(airports_summary1) <- c("region","pass_2019_FALSE","pass_2019_TRUE","pass_km_2019_FALSE", "pass_km_2019_TRUE","emissions_2019_FALSE","emissions_2019_TRUE")
+names(airports_summary1) <- c("region2","pass_2019_FALSE","pass_2019_TRUE","pass_km_2019_FALSE", "pass_km_2019_TRUE","emissions_2019_FALSE","emissions_2019_TRUE")
 airports_summary2 <- airports_summary2[,names(airports_summary1)]
 
 airports_summary <- rbind(airports_summary1, airports_summary2)
 
-write.csv(airports_summary,"../../data/study_area_summary_v2.csv")
+write.csv(airports_summary,"../../data/study_area_summary_v4.csv")
+
+```
+
+## Rail Emissions
+
+```{r rail_emissions, echo=FALSE}
+pass_od_rail <- read_sf("../../data/clean/od_emissions_2021_rail.gpkg")
+pass_od_rail <- st_drop_geometry(pass_od_rail)
+pass_od_rail <- pass_od_rail[,c("airport1","airport1_country","airport2","airport2_country","length_rail_km")]
+
+pass_od <- left_join(pass_od, pass_od_rail, by = c("airport1","airport1_country","airport2","airport2_country"))
+pass_od$pass_km_rail_2019 = pass_od$length_rail_km * pass_od$pass_2019
+pass_od$emissions_rail_2019 = pass_od$pass_km_rail_2019 * 0.00446 #BEIS KgCO2e 2021 per pass km
+
+
+
+
+```
+
+```{r rail_rnet, echo=FALSE}
+rail_sf <- read_sf("../../data/clean/od_emissions_2021_rail.gpkg")
+rail_sf_geom <- readRDS("../../data/clean/rail_routes.Rds")
+rail_sf <- st_drop_geometry(rail_sf)
+summary(rail_sf$length_rail_km == rail_sf_geom$length_rail_km)
+rail_sf$geometry <- rail_sf_geom$x
+rail_sf = st_as_sf(rail_sf)
+
+
+rail_sf <- left_join(rail_sf, 
+                     st_drop_geometry(pass_od[,c("airport1","airport1_country","airport2","airport2_country","pass_2019")]),
+                     by = c("airport1","airport1_country","airport2","airport2_country")
+                     )
+rail_sf$pass_2019[is.na(rail_sf$pass_2019)] = 0
+
+rnet = stplanr::overline2(rail_sf, attrib = "pass_2019")
+rnet = rnet[rnet$pass_2019 > 0,]
+summary(rnet$pass_2019)
 
 ```
 
 
+```{r rail_route_plots, echo=FALSE}
+bbox <- st_as_sfc(st_bbox(iso_final))
+mrail <- tm_shape(rnet, bbox = bbox) +
+  tm_lines(col = "pass_2019", 
+           style = "fixed", 
+           breaks = c(0,5e5,1e6,5e6,10e6,50e6,105e6),
+           palette = "viridis",
+           lwd = 2) +
+  tm_shape(bounds) +
+  tm_lines() +
+  tm_layout(legend.position = c(0.05,0.3),
+            frame = FALSE, outer.margins = 0) +
+  tm_shape(airports) +
+  tm_dots()
+tmap_save(mrail, filename = "../../plots/rail_routes.png")
 
 
 
-
-
+```
 
 
 
